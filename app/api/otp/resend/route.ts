@@ -4,18 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { Resend } from 'resend'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Liberty Bank <noreply@libertybank.com>'
@@ -29,6 +19,7 @@ function generateOTPCode(): string {
 }
 
 async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+  const supabaseAdmin = getSupabaseAdmin()
   const now = new Date()
   const hourWindow = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0)
 
@@ -157,6 +148,8 @@ async function sendOTPEmail(
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+    
     const body = await request.json()
     const { userId } = body
 

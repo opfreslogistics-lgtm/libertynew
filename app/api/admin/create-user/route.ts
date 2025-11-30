@@ -1,44 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-
-// This uses the service role key for admin operations
-// Initialize only if env vars are available
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-const supabaseAdmin = supabaseUrl && serviceRoleKey
-  ? createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null
+import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check environment variables and Supabase client
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Missing Supabase environment variables')
-      return NextResponse.json(
-        { error: 'Server configuration error: Missing Supabase environment variables' },
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    if (!supabaseAdmin) {
-      console.error('Supabase admin client not initialized')
-      return NextResponse.json(
-        { error: 'Server configuration error: Supabase client not initialized' },
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Get the current user's session to verify they are an admin
     const authHeader = request.headers.get('authorization')

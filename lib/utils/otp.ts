@@ -3,17 +3,7 @@
  * Helper functions for OTP verification logic
  */
 
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 /**
  * Check if a user requires OTP verification
@@ -26,6 +16,8 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
  */
 export async function userRequiresOTP(userId: string): Promise<boolean> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+    
     // Call the database function
     const { data, error } = await supabaseAdmin.rpc('user_requires_otp_verification', {
       p_user_id: userId,
@@ -49,6 +41,7 @@ export async function userRequiresOTP(userId: string): Promise<boolean> {
  */
 async function manualOTPCheck(userId: string): Promise<boolean> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     console.log('Manual OTP check for user:', userId)
     
     // Get global setting
@@ -133,6 +126,7 @@ async function manualOTPCheck(userId: string): Promise<boolean> {
  */
 export async function hasVerifiedOTPSession(userId: string, sessionId?: string): Promise<boolean> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const query = supabaseAdmin
       .from('otp_verified_sessions')
       .select('*')

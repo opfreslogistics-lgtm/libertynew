@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   Shield,
@@ -16,7 +16,6 @@ import Link from 'next/link'
 
 export default function VerifyOTPPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
