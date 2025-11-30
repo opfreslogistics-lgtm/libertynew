@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import AdvancedNavbar from '@/components/AdvancedNavbar'
 import Footer from '@/components/homepage/Footer'
 import { 
@@ -13,7 +14,9 @@ import {
   CheckCircle2,
   Building2,
   Smartphone,
-  HeadphonesIcon
+  HeadphonesIcon,
+  Star,
+  Quote
 } from 'lucide-react'
 
 export default function PersonalBankingPage() {
@@ -23,28 +26,32 @@ export default function PersonalBankingPage() {
       title: 'Checking Accounts',
       description: 'Manage your everyday spending with our flexible checking accounts',
       features: ['No minimum balance', 'Free online banking', 'Mobile check deposit', 'Overdraft protection'],
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-blue-500 to-blue-600',
+      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop'
     },
     {
       icon: PiggyBank,
       title: 'Savings Accounts',
       description: 'Grow your money with competitive interest rates',
       features: ['High-yield savings', 'No monthly fees', 'Automatic savings tools', 'FDIC insured up to $250,000'],
-      color: 'from-green-500 to-emerald-600'
+      color: 'from-green-500 to-emerald-600',
+      image: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&h=600&fit=crop'
     },
     {
       icon: CreditCard,
       title: 'Debit Cards',
       description: 'Secure and convenient access to your funds worldwide',
       features: ['Contactless payments', 'Zero liability protection', 'Instant transaction alerts', 'Global ATM access'],
-      color: 'from-purple-500 to-purple-600'
+      color: 'from-purple-500 to-purple-600',
+      image: 'https://images.unsplash.com/photo-1556742393-d75f468bfcb0?w=800&h=600&fit=crop'
     },
     {
       icon: TrendingUp,
       title: 'Money Market Accounts',
       description: 'Higher returns with easy access to your money',
       features: ['Competitive APY', 'Check writing privileges', 'Tiered interest rates', 'FDIC insured'],
-      color: 'from-orange-500 to-orange-600'
+      color: 'from-orange-500 to-orange-600',
+      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop'
     }
   ]
 
@@ -53,6 +60,37 @@ export default function PersonalBankingPage() {
     { icon: Smartphone, title: 'Mobile Banking', description: 'Bank anywhere, anytime with our app' },
     { icon: HeadphonesIcon, title: '24/7 Support', description: 'Expert help whenever you need it' },
     { icon: Building2, title: 'Nationwide', description: 'Access to 1000+ branches' },
+  ]
+
+  const testimonials = [
+    {
+      name: 'Sarah Johnson',
+      role: 'Small Business Owner',
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop',
+      quote: 'Liberty Bank\'s checking account has made managing my business finances incredibly simple. The mobile app is fantastic!',
+      rating: 5
+    },
+    {
+      name: 'Michael Chen',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+      quote: 'Best savings rates I\'ve found. My money is growing while staying accessible. Highly recommend their high-yield savings account.',
+      rating: 5
+    },
+    {
+      name: 'Emily Rodriguez',
+      role: 'Teacher',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
+      quote: 'The automatic savings features have helped me save more than I ever thought possible. Customer service is exceptional!',
+      rating: 5
+    }
+  ]
+
+  const stats = [
+    { value: '2M+', label: 'Active Customers' },
+    { value: '$50B+', label: 'Assets Under Management' },
+    { value: '1,000+', label: 'Branch Locations' },
+    { value: '4.9/5', label: 'Customer Rating' }
   ]
 
   return (
@@ -68,39 +106,66 @@ export default function PersonalBankingPage() {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-semibold mb-6">
-              <Wallet className="w-4 h-4" />
-              <span>Personal Banking Solutions</span>
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-              Banking That{' '}
-              <span className="bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
-                Works for You
-              </span>
-            </h1>
-            
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-              Simple, secure, and rewarding banking solutions designed for your lifestyle. 
-              From everyday checking to long-term savings goals.
-            </p>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-semibold mb-6">
+                <Wallet className="w-4 h-4" />
+                <span>Personal Banking Solutions</span>
+              </div>
+              
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+                Banking That{' '}
+                <span className="bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
+                  Works for You
+                </span>
+              </h1>
+              
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                Simple, secure, and rewarding banking solutions designed for your lifestyle. 
+                From everyday checking to long-term savings goals.
+              </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/signup"
-                className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl font-semibold hover:shadow-2xl transform hover:scale-105 transition-all flex items-center justify-center gap-2"
-              >
-                Open Account Today
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                href="/contact"
-                className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 rounded-xl font-semibold hover:border-green-600 dark:hover:border-green-500 transition-all"
-              >
-                Talk to an Advisor
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/signup"
+                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl font-semibold hover:shadow-2xl transform hover:scale-105 transition-all flex items-center justify-center gap-2"
+                >
+                  Open Account Today
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/contact"
+                  className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 rounded-xl font-semibold hover:border-green-600 dark:hover:border-green-500 transition-all shadow-sm"
+                >
+                  Talk to an Advisor
+                </Link>
+              </div>
             </div>
+            
+            <div className="relative">
+              <Image
+                src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop"
+                alt="Modern banking experience"
+                width={800}
+                height={600}
+                className="rounded-3xl shadow-2xl"
+                unoptimized
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-2">{stat.value}</div>
+                <div className="text-gray-600 dark:text-gray-400">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -123,36 +188,51 @@ export default function PersonalBankingPage() {
               return (
                 <div
                   key={index}
-                  className="bg-white dark:from-gray-800 dark:to-gray-700 rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-600 group hover:border-green-200 dark:hover:border-green-700"
+                  className="bg-white dark:from-gray-800 dark:to-gray-700 rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-600 group hover:border-green-200 dark:hover:border-green-700"
                 >
-                  <div className={`w-16 h-16 bg-gradient-to-br ${account.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-8 h-8 text-white" />
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={account.image}
+                      alt={account.title}
+                      width={800}
+                      height={600}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      unoptimized
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${account.color} opacity-80`}></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                        <Icon className="w-10 h-10 text-white" />
+                      </div>
+                    </div>
                   </div>
                   
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                    {account.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    {account.description}
-                  </p>
+                  <div className="p-8">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                      {account.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                      {account.description}
+                    </p>
 
-                  <ul className="space-y-3 mb-6">
-                    {account.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="space-y-3 mb-6">
+                      {account.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                          <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                  <Link
-                    href="/signup"
-                    className="inline-flex items-center gap-2 text-green-700 dark:text-green-400 font-semibold hover:gap-3 transition-all"
-                  >
-                    Learn More
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
+                    <Link
+                      href="/signup"
+                      className="inline-flex items-center gap-2 text-green-700 dark:text-green-400 font-semibold hover:gap-3 transition-all"
+                    >
+                      Learn More
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                  </div>
                 </div>
               )
             })}
@@ -178,9 +258,11 @@ export default function PersonalBankingPage() {
               return (
                 <div
                   key={index}
-                  className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-gray-700"
+                  className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-gray-700 text-center"
                 >
-                  <Icon className="w-12 h-12 text-green-600 dark:text-green-400 mb-4" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-8 h-8 text-white" />
+                  </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     {benefit.title}
                   </h3>
@@ -190,6 +272,48 @@ export default function PersonalBankingPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Trusted by Millions
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              See what our customers have to say
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-md border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-10 h-10 text-green-600 dark:text-green-400 mb-4" />
+                <p className="text-gray-700 dark:text-gray-300 mb-6 italic">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-4">
+                  <Image
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    width={50}
+                    height={50}
+                    className="rounded-full"
+                    unoptimized
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-white">{testimonial.name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -19,6 +19,14 @@ import {
   Shield,
   Sun,
   Moon,
+  ChevronDown,
+  Wallet,
+  CreditCard,
+  Home,
+  TrendingUp,
+  Store,
+  Briefcase,
+  Smartphone,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
@@ -27,6 +35,7 @@ import { useAppSettings } from '@/lib/hooks/useAppSettings'
 export default function AdvancedNavbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -67,6 +76,46 @@ export default function AdvancedNavbar() {
     await supabase.auth.signOut()
     router.push('/')
   }
+
+  // Navigation menu structure with dropdowns
+  const navigationMenu = [
+    {
+      label: 'Personal',
+      hasDropdown: true,
+      items: [
+        { label: 'Personal Banking', href: '/personal-banking', icon: Wallet },
+        { label: 'Credit Cards', href: '/credit-cards', icon: CreditCard },
+        { label: 'Mortgage & Loans', href: '/mortgage', icon: Home },
+        { label: 'Wealth Management', href: '/wealth-management', icon: TrendingUp },
+        { label: 'Insurance', href: '/insurance', icon: Shield },
+      ]
+    },
+    {
+      label: 'Business',
+      hasDropdown: true,
+      items: [
+        { label: 'Small Business', href: '/small-business', icon: Store },
+        { label: 'Corporate Banking', href: '/corporate', icon: Building2 },
+        { label: 'Business Loans', href: '/loans', icon: TrendingUp },
+        { label: 'Merchant Services', href: '/services', icon: Briefcase },
+      ]
+    },
+    {
+      label: 'Digital',
+      hasDropdown: false,
+      href: '/digital-banking'
+    },
+    {
+      label: 'About',
+      hasDropdown: false,
+      href: '/about'
+    },
+    {
+      label: 'Contact',
+      hasDropdown: false,
+      href: '/contact'
+    }
+  ]
 
   return (
     <>
@@ -211,7 +260,7 @@ export default function AdvancedNavbar() {
         </div>
       </div>
 
-      {/* MAIN NAVIGATION BAR */}
+      {/* MAIN NAVIGATION BAR WITH DROPDOWNS */}
       <nav className={`sticky top-0 z-50 transition-all duration-300 ${
         isScrolled 
           ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200 dark:border-gray-800' 
@@ -222,13 +271,55 @@ export default function AdvancedNavbar() {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1 flex-1">
               <NavLink href="/" active={pathname === '/'}>Home</NavLink>
-              <NavLink href="/personal-banking" active={pathname.startsWith('/personal-banking') || pathname.startsWith('/accounts')}>Personal</NavLink>
-              <NavLink href="/small-business" active={pathname.startsWith('/small-business') || pathname.startsWith('/business')}>Business</NavLink>
-              <NavLink href="/credit-cards" active={pathname.startsWith('/credit-cards')}>Credit Cards</NavLink>
-              <NavLink href="/mortgage" active={pathname.startsWith('/mortgage') || pathname.startsWith('/loans')}>Mortgage</NavLink>
-              <NavLink href="/wealth-management" active={pathname.startsWith('/wealth-management') || pathname.startsWith('/investments')}>Wealth</NavLink>
-              <NavLink href="/digital-banking" active={pathname.startsWith('/digital-banking')}>Digital</NavLink>
-              <NavLink href="/about" active={pathname.startsWith('/about')}>About</NavLink>
+              
+              {navigationMenu.map((item, index) => (
+                item.hasDropdown ? (
+                  <div 
+                    key={index}
+                    className="relative group"
+                    onMouseEnter={() => setOpenDropdown(item.label)}
+                    onMouseLeave={() => setOpenDropdown(null)}
+                  >
+                    <button
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-1 ${
+                        item.items?.some(i => pathname.startsWith(i.href))
+                          ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {item.label}
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    <div className={`absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 ${
+                      openDropdown === item.label ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+                    }`}>
+                      {item.items?.map((subItem, subIndex) => {
+                        const Icon = subItem.icon
+                        return (
+                          <Link
+                            key={subIndex}
+                            href={subItem.href}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                          >
+                            <Icon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{subItem.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <NavLink 
+                    key={index} 
+                    href={item.href!} 
+                    active={pathname === item.href || pathname.startsWith(item.href!)}
+                  >
+                    {item.label}
+                  </NavLink>
+                )
+              ))}
             </div>
 
             {/* Mobile Menu Button */}
@@ -243,20 +334,37 @@ export default function AdvancedNavbar() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-            <div className="px-4 py-4 space-y-2">
+          <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 max-h-[80vh] overflow-y-auto">
+            <div className="px-4 py-4 space-y-1">
               <MobileNavLink href="/" onClick={() => setIsMobileMenuOpen(false)}>Home</MobileNavLink>
-              <MobileNavLink href="/personal-banking" onClick={() => setIsMobileMenuOpen(false)}>Personal Banking</MobileNavLink>
-              <MobileNavLink href="/small-business" onClick={() => setIsMobileMenuOpen(false)}>Small Business</MobileNavLink>
-              <MobileNavLink href="/corporate" onClick={() => setIsMobileMenuOpen(false)}>Corporate Banking</MobileNavLink>
-              <MobileNavLink href="/credit-cards" onClick={() => setIsMobileMenuOpen(false)}>Credit Cards</MobileNavLink>
-              <MobileNavLink href="/mortgage" onClick={() => setIsMobileMenuOpen(false)}>Mortgage & Home Loans</MobileNavLink>
-              <MobileNavLink href="/wealth-management" onClick={() => setIsMobileMenuOpen(false)}>Wealth Management</MobileNavLink>
-              <MobileNavLink href="/insurance" onClick={() => setIsMobileMenuOpen(false)}>Insurance</MobileNavLink>
+              
+              {/* Personal Banking Submenu */}
+              <div className="py-2">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-4">
+                  Personal Banking
+                </div>
+                <MobileNavLink href="/personal-banking" onClick={() => setIsMobileMenuOpen(false)}>Personal Banking</MobileNavLink>
+                <MobileNavLink href="/credit-cards" onClick={() => setIsMobileMenuOpen(false)}>Credit Cards</MobileNavLink>
+                <MobileNavLink href="/mortgage" onClick={() => setIsMobileMenuOpen(false)}>Mortgage & Loans</MobileNavLink>
+                <MobileNavLink href="/wealth-management" onClick={() => setIsMobileMenuOpen(false)}>Wealth Management</MobileNavLink>
+                <MobileNavLink href="/insurance" onClick={() => setIsMobileMenuOpen(false)}>Insurance</MobileNavLink>
+              </div>
+              
+              {/* Business Banking Submenu */}
+              <div className="py-2">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-4">
+                  Business Banking
+                </div>
+                <MobileNavLink href="/small-business" onClick={() => setIsMobileMenuOpen(false)}>Small Business</MobileNavLink>
+                <MobileNavLink href="/corporate" onClick={() => setIsMobileMenuOpen(false)}>Corporate Banking</MobileNavLink>
+                <MobileNavLink href="/loans" onClick={() => setIsMobileMenuOpen(false)}>Business Loans</MobileNavLink>
+                <MobileNavLink href="/services" onClick={() => setIsMobileMenuOpen(false)}>Merchant Services</MobileNavLink>
+              </div>
+              
               <MobileNavLink href="/digital-banking" onClick={() => setIsMobileMenuOpen(false)}>Digital Banking</MobileNavLink>
-              <MobileNavLink href="/services" onClick={() => setIsMobileMenuOpen(false)}>Services</MobileNavLink>
               <MobileNavLink href="/about" onClick={() => setIsMobileMenuOpen(false)}>About</MobileNavLink>
               <MobileNavLink href="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</MobileNavLink>
+              
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => {
@@ -302,7 +410,6 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   )
 }
 
-
 // Mobile NavLink Component
 function MobileNavLink({ href, onClick, children }: { href: string; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -315,4 +422,3 @@ function MobileNavLink({ href, onClick, children }: { href: string; onClick: () 
     </Link>
   )
 }
-
