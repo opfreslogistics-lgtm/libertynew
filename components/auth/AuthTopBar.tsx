@@ -5,7 +5,7 @@ import { useTheme } from '@/components/ThemeProvider'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Building2, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 export default function AuthTopBar() {
@@ -20,6 +20,17 @@ export default function AuthTopBar() {
   const logoDark = settings.app_logo_dark || settings.app_logo || ''
   // Theme-aware logo selection
   const logoUrl = theme === 'dark' ? logoDark : logoLight
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 AuthTopBar Debug:', {
+      theme,
+      logoLight,
+      logoDark,
+      logoUrl,
+      allSettings: settings
+    })
+  }, [theme, logoLight, logoDark, logoUrl, settings])
 
   const isLoginPage = pathname === '/login'
   const isSignupPage = pathname === '/signup'
