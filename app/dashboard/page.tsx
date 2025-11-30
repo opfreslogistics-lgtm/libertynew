@@ -372,7 +372,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-sm font-semibold">
+            <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-sm font-semibold shadow-sm">
               <Download className="w-4 h-4" />
               Export
             </button>
@@ -407,17 +407,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Total Balance Card - Premium */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 text-white shadow-2xl mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-700/20 rounded-full blur-3xl"></div>
+      <div className="bg-gradient-to-br from-green-700 to-emerald-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 text-white shadow-xl mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-green-700 rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
                 <Wallet className="w-7 h-7" />
               </div>
               <div>
-                <p className="text-white/70 text-sm font-medium">Total Balance</p>
-                <p className="text-xs text-white/50">All accounts combined</p>
+                <p className="text-white/90 text-sm font-medium">Total Balance</p>
+                <p className="text-xs text-white/70">All accounts combined</p>
               </div>
             </div>
             <button onClick={() => setShowBalance(!showBalance)} className="p-3 hover:bg-white/10 rounded-xl transition-all">
@@ -430,26 +430,26 @@ export default function DashboardPage() {
               {showBalance ? formatCurrency(totalBalance) : '••••••'}
             </p>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-white/70">Start banking with Liberty</span>
+              <span className="text-sm text-white/80">Start banking with Liberty</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-white/70 text-xs mb-1">Monthly Income</p>
+              <p className="text-white/80 text-xs mb-1 font-medium">Monthly Income</p>
               <p className="text-xl font-bold">{formatCurrency(monthlyIncome)}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-white/70 text-xs mb-1">Expenses</p>
+              <p className="text-white/80 text-xs mb-1 font-medium">Expenses</p>
               <p className="text-xl font-bold">{formatCurrency(monthlyExpenses)}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-white/70 text-xs mb-1">Saved</p>
-              <p className="text-xl font-bold text-green-400">{formatCurrency(monthlySavings)}</p>
+              <p className="text-white/80 text-xs mb-1 font-medium">Saved</p>
+              <p className="text-xl font-bold text-green-100">{formatCurrency(monthlySavings)}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-white/70 text-xs mb-1">Savings Rate</p>
-              <p className="text-xl font-bold text-green-400">{savingsRate}%</p>
+              <p className="text-white/80 text-xs mb-1 font-medium">Savings Rate</p>
+              <p className="text-xl font-bold text-green-100">{savingsRate}%</p>
             </div>
           </div>
         </div>
