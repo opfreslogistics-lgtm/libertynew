@@ -123,27 +123,27 @@ export default function AdvancedNavbar() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center group">
-              {(theme === 'dark' && logoDark) || logoLight ? (
-                // Show uploaded landscape logo (replaces entire logo section)
+              {/* Always prioritize uploaded logo - theme-aware */}
+              {(theme === 'dark' ? logoDark : logoLight) ? (
                 <div className="h-12 flex items-center">
                   <Image
-                    src={(theme === 'dark' && logoDark) ? logoDark : logoLight}
+                    src={theme === 'dark' ? logoDark : logoLight}
                     alt={`${appName} Logo`}
                     width={200}
                     height={48}
-                    className="h-full w-auto object-contain group-hover:opacity-90 transition-opacity duration-300"
+                    className="h-full w-auto max-w-[200px] object-contain group-hover:opacity-90 transition-opacity duration-300"
                     unoptimized
                     priority
                   />
                 </div>
               ) : (
-                // Fallback: Show default logo with text
+                // Fallback only when no logo uploaded
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <div className="w-14 h-14 bg-gradient-to-br from-green-600 via-emerald-600 to-green-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-105">
                       <Building2 className="w-8 h-8 text-white" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
                   </div>
                   <div className="hidden sm:block">
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
@@ -222,19 +222,13 @@ export default function AdvancedNavbar() {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1 flex-1">
               <NavLink href="/" active={pathname === '/'}>Home</NavLink>
-              <NavLink href="/accounts" active={pathname.startsWith('/personal') || pathname.startsWith('/accounts')}>Personal Banking</NavLink>
-              <NavLink href="/business" active={pathname.startsWith('/business')}>Business Banking</NavLink>
-              <NavLink href="/loans" active={pathname.startsWith('/loans')}>Loans & Credit</NavLink>
-              <NavLink href="/investments" active={pathname.startsWith('/investments')}>Investments</NavLink>
-              
-              {/* Services */}
-              <NavLink href="/services" active={pathname.startsWith('/services')}>Services</NavLink>
-              
-              {/* About */}
+              <NavLink href="/personal-banking" active={pathname.startsWith('/personal-banking') || pathname.startsWith('/accounts')}>Personal</NavLink>
+              <NavLink href="/small-business" active={pathname.startsWith('/small-business') || pathname.startsWith('/business')}>Business</NavLink>
+              <NavLink href="/credit-cards" active={pathname.startsWith('/credit-cards')}>Credit Cards</NavLink>
+              <NavLink href="/mortgage" active={pathname.startsWith('/mortgage') || pathname.startsWith('/loans')}>Mortgage</NavLink>
+              <NavLink href="/wealth-management" active={pathname.startsWith('/wealth-management') || pathname.startsWith('/investments')}>Wealth</NavLink>
+              <NavLink href="/digital-banking" active={pathname.startsWith('/digital-banking')}>Digital</NavLink>
               <NavLink href="/about" active={pathname.startsWith('/about')}>About</NavLink>
-              
-              {/* Contact */}
-              <NavLink href="/contact" active={pathname.startsWith('/contact')}>Contact</NavLink>
             </div>
 
             {/* Mobile Menu Button */}
@@ -252,10 +246,14 @@ export default function AdvancedNavbar() {
           <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             <div className="px-4 py-4 space-y-2">
               <MobileNavLink href="/" onClick={() => setIsMobileMenuOpen(false)}>Home</MobileNavLink>
-              <MobileNavLink href="/accounts" onClick={() => setIsMobileMenuOpen(false)}>Personal Banking</MobileNavLink>
-              <MobileNavLink href="/business" onClick={() => setIsMobileMenuOpen(false)}>Business Banking</MobileNavLink>
-              <MobileNavLink href="/loans" onClick={() => setIsMobileMenuOpen(false)}>Loans & Credit</MobileNavLink>
-              <MobileNavLink href="/investments" onClick={() => setIsMobileMenuOpen(false)}>Investments</MobileNavLink>
+              <MobileNavLink href="/personal-banking" onClick={() => setIsMobileMenuOpen(false)}>Personal Banking</MobileNavLink>
+              <MobileNavLink href="/small-business" onClick={() => setIsMobileMenuOpen(false)}>Small Business</MobileNavLink>
+              <MobileNavLink href="/corporate" onClick={() => setIsMobileMenuOpen(false)}>Corporate Banking</MobileNavLink>
+              <MobileNavLink href="/credit-cards" onClick={() => setIsMobileMenuOpen(false)}>Credit Cards</MobileNavLink>
+              <MobileNavLink href="/mortgage" onClick={() => setIsMobileMenuOpen(false)}>Mortgage & Home Loans</MobileNavLink>
+              <MobileNavLink href="/wealth-management" onClick={() => setIsMobileMenuOpen(false)}>Wealth Management</MobileNavLink>
+              <MobileNavLink href="/insurance" onClick={() => setIsMobileMenuOpen(false)}>Insurance</MobileNavLink>
+              <MobileNavLink href="/digital-banking" onClick={() => setIsMobileMenuOpen(false)}>Digital Banking</MobileNavLink>
               <MobileNavLink href="/services" onClick={() => setIsMobileMenuOpen(false)}>Services</MobileNavLink>
               <MobileNavLink href="/about" onClick={() => setIsMobileMenuOpen(false)}>About</MobileNavLink>
               <MobileNavLink href="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</MobileNavLink>

@@ -26,10 +26,8 @@ export default function Footer({ data }: FooterProps) {
   const socialLinkedin = settings.social_linkedin_url || ''
   const appName = settings.app_name || 'Liberty National Bank'
 
-  // Use theme-aware footer logo - prioritize uploaded logos
-  const footerLogo = (theme === 'dark' && footerLogoDark) 
-    ? footerLogoDark 
-    : (footerLogoLight || footerLogoDark || settings.app_logo || '')
+  // Use theme-aware footer logo - always prioritize uploaded logos
+  const footerLogo = theme === 'dark' ? footerLogoDark : footerLogoLight
 
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-300 border-t border-gray-800">
@@ -93,11 +91,11 @@ export default function Footer({ data }: FooterProps) {
           <div>
             <h4 className="text-white font-semibold mb-4">Personal Banking</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/accounts" className="hover:text-green-400 transition-colors">Checking Accounts</Link></li>
-              <li><Link href="/accounts" className="hover:text-green-400 transition-colors">Savings Accounts</Link></li>
-              <li><Link href="/services" className="hover:text-green-400 transition-colors">Banking Services</Link></li>
-              <li><Link href="/services" className="hover:text-green-400 transition-colors">Money Transfers</Link></li>
-              <li><Link href="/investments" className="hover:text-green-400 transition-colors">Investments</Link></li>
+              <li><Link href="/personal-banking" className="hover:text-green-400 transition-colors">Personal Banking</Link></li>
+              <li><Link href="/credit-cards" className="hover:text-green-400 transition-colors">Credit Cards</Link></li>
+              <li><Link href="/mortgage" className="hover:text-green-400 transition-colors">Mortgage & Loans</Link></li>
+              <li><Link href="/wealth-management" className="hover:text-green-400 transition-colors">Wealth Management</Link></li>
+              <li><Link href="/insurance" className="hover:text-green-400 transition-colors">Insurance</Link></li>
             </ul>
           </div>
 
@@ -105,10 +103,10 @@ export default function Footer({ data }: FooterProps) {
           <div>
             <h4 className="text-white font-semibold mb-4">Business Banking</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/business" className="hover:text-green-400 transition-colors">Business Accounts</Link></li>
-              <li><Link href="/business" className="hover:text-green-400 transition-colors">Business Loans</Link></li>
-              <li><Link href="/business" className="hover:text-green-400 transition-colors">Merchant Services</Link></li>
-              <li><Link href="/business" className="hover:text-green-400 transition-colors">Payroll Services</Link></li>
+              <li><Link href="/small-business" className="hover:text-green-400 transition-colors">Small Business</Link></li>
+              <li><Link href="/corporate" className="hover:text-green-400 transition-colors">Corporate Banking</Link></li>
+              <li><Link href="/loans" className="hover:text-green-400 transition-colors">Business Loans</Link></li>
+              <li><Link href="/services" className="hover:text-green-400 transition-colors">Merchant Services</Link></li>
             </ul>
           </div>
 
@@ -116,11 +114,11 @@ export default function Footer({ data }: FooterProps) {
           <div>
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/blog" className="hover:text-green-400 transition-colors">Blog & News</Link></li>
-              <li><Link href="/help" className="hover:text-green-400 transition-colors">Help Center</Link></li>
+              <li><Link href="/digital-banking" className="hover:text-green-400 transition-colors">Digital Banking</Link></li>
               <li><Link href="/security" className="hover:text-green-400 transition-colors">Security Center</Link></li>
+              <li><Link href="/help" className="hover:text-green-400 transition-colors">Help Center</Link></li>
               <li><Link href="/locations" className="hover:text-green-400 transition-colors">Branch Locator</Link></li>
-              <li><Link href="/contact" className="hover:text-green-400 transition-colors">Contact Us</Link></li>
+              <li><Link href="/about" className="hover:text-green-400 transition-colors">About Us</Link></li>
             </ul>
           </div>
 
