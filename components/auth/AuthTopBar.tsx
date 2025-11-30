@@ -15,9 +15,10 @@ export default function AuthTopBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   const appName = settings.app_name || 'Liberty National Bank'
-  // Get logo URLs - prioritize uploaded logos (same logic as AdvancedNavbar)
-  const logoLight = settings.app_logo_light || settings.app_logo || ''
-  const logoDark = settings.app_logo_dark || settings.app_logo || ''
+  // Get logo URLs - use hardcoded fallback if no admin upload
+  const HARDCODED_LOGO = 'https://ancomjvybjnaapxjsfbk.supabase.co/storage/v1/object/public/app-images/app-settings/app_logo_dark_1764461829920_27d4d2.png'
+  const logoLight = settings.app_logo_light || settings.app_logo || HARDCODED_LOGO
+  const logoDark = settings.app_logo_dark || settings.app_logo || HARDCODED_LOGO
   // Theme-aware logo selection
   const logoUrl = theme === 'dark' ? logoDark : logoLight
   

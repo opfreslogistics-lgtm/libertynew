@@ -14,9 +14,10 @@ export default function Footer({ data }: FooterProps) {
   const { theme } = useTheme()
   const { settings } = useAppSettings()
   
-  // Footer logos - prioritize footer-specific, then fall back to app logos
-  const footerLogoLight = settings.footer_logo_light || settings.app_logo_light || settings.app_logo || ''
-  const footerLogoDark = settings.footer_logo_dark || settings.app_logo_dark || settings.app_logo || ''
+  // Footer logos - prioritize footer-specific, then fall back to app logos, then hardcoded
+  const HARDCODED_LOGO = 'https://ancomjvybjnaapxjsfbk.supabase.co/storage/v1/object/public/app-images/app-settings/app_logo_dark_1764461829920_27d4d2.png'
+  const footerLogoLight = settings.footer_logo_light || settings.app_logo_light || settings.app_logo || HARDCODED_LOGO
+  const footerLogoDark = settings.footer_logo_dark || settings.app_logo_dark || settings.app_logo || HARDCODED_LOGO
   const phone = settings.contact_phone || '+1 (555) 123-4567'
   const email = settings.contact_email || 'contact@libertybank.com'
   const address = settings.contact_address || '123 Bank Street, Financial District, NY 10004'

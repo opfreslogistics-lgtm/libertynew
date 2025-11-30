@@ -43,9 +43,10 @@ export default function AdvancedNavbar() {
   const { theme, toggleTheme } = useTheme()
   const { settings } = useAppSettings()
   
-  // Get logo URLs - prioritize uploaded logos
-  const logoLight = settings.app_logo_light || settings.app_logo || ''
-  const logoDark = settings.app_logo_dark || settings.app_logo || ''
+  // Get logo URLs - use hardcoded fallback if no admin upload
+  const HARDCODED_LOGO = 'https://ancomjvybjnaapxjsfbk.supabase.co/storage/v1/object/public/app-images/app-settings/app_logo_dark_1764461829920_27d4d2.png'
+  const logoLight = settings.app_logo_light || settings.app_logo || HARDCODED_LOGO
+  const logoDark = settings.app_logo_dark || settings.app_logo || HARDCODED_LOGO
   const contactPhone = settings.contact_phone || '1-800-LIBERTY (1-800-542-3789)'
   const contactEmail = settings.contact_email || 'support@libertybank.com'
   const appName = settings.app_name || 'Liberty Bank'
