@@ -353,38 +353,74 @@ export default function LocationsPage() {
                 Find Us on the Map
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400">
-                Click on a branch card above to view it on the map
+                {selectedLocation 
+                  ? `Viewing: ${branches.find(b => b.id === selectedLocation)?.name}`
+                  : 'Click on a branch card above to view it on the map'}
               </p>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
-              <div className="relative h-96 lg:h-[600px]">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
-                  <div className="text-center">
-                    <Globe className="w-20 h-20 text-green-600 dark:text-green-400 mx-auto mb-4" />
-                    <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg mb-2">Interactive Map</p>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
-                      {selectedLocation 
-                        ? `Showing: ${branches.find(b => b.id === selectedLocation)?.name}`
-                        : 'Select a branch to view on map'}
-                    </p>
-                    {selectedLocation && (
-                      <button
-                        onClick={() => {
-                          const branch = branches.find(b => b.id === selectedLocation)
-                          if (branch) {
-                            window.open(`https://www.google.com/maps?q=${branch.coordinates.lat},${branch.coordinates.lng}`, '_blank')
-                          }
-                        }}
-                        className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
-                      >
-                        <Navigation className="w-4 h-4" />
-                        <span>Open in Google Maps</span>
-                      </button>
-                    )}
+              <div className="relative h-96 lg:h-[600px] w-full">
+                {selectedLocation ? (
+                  (() => {
+                    const branch = branches.find(b => b.id === selectedLocation)
+                    if (!branch) return null
+                    const mapAddress = `${branch.address}, ${branch.city}${branch.state ? `, ${branch.state}` : ''} ${branch.zip}, ${branch.country}`
+                    return (
+                      <iframe
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(mapAddress)}&hl=en&z=14&output=embed`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="absolute inset-0"
+                        title={`${branch.name} Location`}
+                      ></iframe>
+                    )
+                  })()
+                ) : (
+                  <iframe
+                    src="https://maps.google.com/maps?q=Liberty+Bank+branches&hl=en&z=2&output=embed"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="absolute inset-0"
+                    title="Liberty Bank Branches Worldwide"
+                  ></iframe>
+                )}
+              </div>
+              {selectedLocation && (
+                <div className="p-6 bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                        {branches.find(b => b.id === selectedLocation)?.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {branches.find(b => b.id === selectedLocation)?.address}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const branch = branches.find(b => b.id === selectedLocation)
+                        if (branch) {
+                          const mapAddress = `${branch.address}, ${branch.city}${branch.state ? `, ${branch.state}` : ''} ${branch.zip}, ${branch.country}`
+                          window.open(`https://www.google.com/maps?q=${encodeURIComponent(mapAddress)}`, '_blank')
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      <span>Get Directions</span>
+                    </button>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>

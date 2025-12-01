@@ -157,7 +157,7 @@ export default function PersonalBankingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+      <section className="py-16 bg-white dark:bg-gray-800 border-y border-gray-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -171,7 +171,7 @@ export default function PersonalBankingPage() {
       </section>
 
       {/* Account Types */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -188,7 +188,7 @@ export default function PersonalBankingPage() {
               return (
                 <div
                   key={index}
-                  className="bg-white dark:from-gray-800 dark:to-gray-700 rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-600 group hover:border-green-200 dark:hover:border-green-700"
+                  className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 group hover:border-green-200 dark:hover:border-green-700"
                 >
                   <div className="relative h-48 overflow-hidden">
                     <Image
@@ -241,7 +241,7 @@ export default function PersonalBankingPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-white dark:from-gray-800 dark:to-gray-900">
+      <section className="py-20 bg-white dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -277,7 +277,7 @@ export default function PersonalBankingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">

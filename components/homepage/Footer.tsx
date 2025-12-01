@@ -116,6 +116,9 @@ export default function Footer({ data }: FooterProps) {
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/digital-banking" className="hover:text-green-400 transition-colors">Digital Banking</Link></li>
+              <li><Link href="/calculators" className="hover:text-green-400 transition-colors">Financial Calculators</Link></li>
+              <li><Link href="/compare" className="hover:text-green-400 transition-colors">Compare Accounts</Link></li>
+              <li><Link href="/rates-fees" className="hover:text-green-400 transition-colors">Rates & Fees</Link></li>
               <li><Link href="/security" className="hover:text-green-400 transition-colors">Security Center</Link></li>
               <li><Link href="/help" className="hover:text-green-400 transition-colors">Help Center</Link></li>
               <li><Link href="/locations" className="hover:text-green-400 transition-colors">Branch Locator</Link></li>
@@ -143,8 +146,15 @@ export default function Footer({ data }: FooterProps) {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} {appName}. All rights reserved.</p>
+        <div className="border-t border-gray-800 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
+            <p>&copy; {new Date().getFullYear()} {appName}. All rights reserved.</p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link href="/privacy" className="hover:text-green-400 transition-colors">Privacy Policy</Link>
+              <span className="text-gray-600">|</span>
+              <Link href="/terms" className="hover:text-green-400 transition-colors">Terms & Conditions</Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

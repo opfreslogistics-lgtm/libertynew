@@ -27,6 +27,7 @@ import {
   Store,
   Briefcase,
   Smartphone,
+  Calculator,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/components/ThemeProvider'
@@ -99,6 +100,15 @@ export default function AdvancedNavbar() {
         { label: 'Corporate Banking', href: '/corporate', icon: Building2 },
         { label: 'Business Loans', href: '/loans', icon: TrendingUp },
         { label: 'Merchant Services', href: '/services', icon: Briefcase },
+      ]
+    },
+    {
+      label: 'Resources',
+      hasDropdown: true,
+      items: [
+        { label: 'Financial Calculators', href: '/calculators', icon: Calculator },
+        { label: 'Compare Accounts', href: '/compare', icon: TrendingUp },
+        { label: 'Rates & Fees', href: '/rates-fees', icon: Wallet },
       ]
     },
     {
@@ -250,7 +260,7 @@ export default function AdvancedNavbar() {
                   </Link>
                   <Link
                     href="/signup"
-                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                    className="px-3 py-2 sm:px-6 sm:py-2 text-xs sm:text-base bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 whitespace-nowrap"
                   >
                     Open Account
                   </Link>
