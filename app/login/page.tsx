@@ -175,29 +175,21 @@ export default function LoginPage() {
             : 'Valued Customer'
           const recipientEmail = profile?.email || authData.user.email || email
 
-          const emailResponse = await fetch('/api/otp/send-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              recipientEmail,
-              recipientName,
-              otpCode: generatedOtp,
-            }),
-          })
+          // Use improved API client with better error handling
+          const { sendOTPEmail } = await import('@/lib/utils/apiClient')
+          const emailResult = await sendOTPEmail(recipientEmail, recipientName, generatedOtp)
 
-          if (!emailResponse.ok) {
-            const emailError = await emailResponse.json()
-            console.error('Error sending OTP email:', emailError)
-            // Don't throw error - OTP is still saved, user can still verify
-            // Just log it for debugging
-          } else {
+          if (emailResult.success) {
             console.log('✅ OTP email sent successfully to:', recipientEmail)
+          } else {
+            console.warn('⚠️ OTP email sending failed:', emailResult.error)
+            // Don't throw error - OTP is still saved in database, user can still verify manually
+            // The OTP code is available in the database for manual verification if needed
           }
         } catch (emailErr: any) {
           console.error('Error sending OTP email:', emailErr)
           // Don't throw error - OTP is still saved, user can still verify
+          // Log the error but continue with the login flow
         }
 
         // Show OTP verification modal

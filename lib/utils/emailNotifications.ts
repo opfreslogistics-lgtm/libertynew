@@ -19,6 +19,13 @@ export async function sendTransferNotification(
   memo?: string
 ): Promise<void> {
   try {
+    console.log('📧 sendTransferNotification called:', {
+      userId,
+      transferType,
+      amount,
+      referenceNumber,
+    })
+
     const notificationType = `transfer_${transferType}` as const
     const transferTypeLabels = {
       internal: 'Internal Transfer',
@@ -39,16 +46,21 @@ export async function sendTransferNotification(
 
     const subject = `${transferTypeLabels[transferType]} - ${formatCurrency(amount)} - ${referenceNumber || 'N/A'}`
 
+    console.log('📧 Calling notifyUser for transfer notification')
     // Notify user
-    await notifyUser(userId, notificationType, subject, metadata)
+    const userResult = await notifyUser(userId, notificationType, subject, metadata)
+    console.log('📧 notifyUser result for transfer:', userResult)
 
+    console.log('📧 Calling notifyAdmins for transfer notification')
     // Notify admins
-    await notifyAdmins(notificationType, `Admin: ${subject}`, {
+    const adminResult = await notifyAdmins(notificationType, `Admin: ${subject}`, {
       ...metadata,
       userId,
     })
+    console.log('📧 notifyAdmins result for transfer:', adminResult)
   } catch (error) {
-    console.error('Error sending transfer notification:', error)
+    console.error('❌ Error sending transfer notification:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     // Don't throw - email failures shouldn't break the transfer
   }
 }
@@ -321,6 +333,92 @@ export async function sendMobileDepositNotification(
 }
 
 /**
+ * Send mobile deposit approval notification emails
+ */
+export async function sendDepositApprovalNotification(
+  userId: string,
+  amount: number,
+  accountType: string,
+  accountNumber: string,
+  referenceNumber: string,
+  depositId: string,
+  adminName?: string,
+  adminNotes?: string
+): Promise<void> {
+  try {
+    const metadata = {
+      amount: formatCurrency(amount),
+      accountType: accountType.charAt(0).toUpperCase() + accountType.slice(1),
+      accountNumber,
+      referenceNumber,
+      depositId,
+      date: new Date().toLocaleString(),
+      adminName: adminName || 'Administrator',
+      adminNotes: adminNotes || undefined,
+    }
+
+    const subject = `Mobile Deposit Approved - ${formatCurrency(amount)} - ${referenceNumber}`
+
+    // Notify user
+    await notifyUser(userId, 'deposit_approved', subject, metadata)
+
+    // Notify admins about the approval
+    await notifyAdmins('deposit_approved', `Admin: Mobile Deposit Approved - ${formatCurrency(amount)} - ${referenceNumber}`, {
+      ...metadata,
+      userId,
+      actionType: 'Mobile Deposit Approval',
+      details: `Mobile deposit of ${formatCurrency(amount)} (${referenceNumber}) has been approved and credited to user's ${metadata.accountType} account.`,
+    })
+  } catch (error) {
+    console.error('Error sending deposit approval notification:', error)
+    // Don't throw - email failures shouldn't break the approval
+  }
+}
+
+/**
+ * Send mobile deposit rejection notification emails
+ */
+export async function sendDepositRejectionNotification(
+  userId: string,
+  amount: number,
+  accountType: string,
+  accountNumber: string,
+  referenceNumber: string,
+  depositId: string,
+  reason?: string,
+  adminNotes?: string
+): Promise<void> {
+  try {
+    const metadata = {
+      amount: formatCurrency(amount),
+      accountType: accountType.charAt(0).toUpperCase() + accountType.slice(1),
+      accountNumber,
+      referenceNumber,
+      depositId,
+      date: new Date().toLocaleString(),
+      reason: reason || undefined,
+      adminNotes: adminNotes || undefined,
+    }
+
+    const subject = `Mobile Deposit Rejected - ${formatCurrency(amount)} - ${referenceNumber}`
+
+    // Notify user
+    await notifyUser(userId, 'deposit_rejected', subject, metadata)
+
+    // Notify admins about the rejection
+    await notifyAdmins('deposit_rejected', `Admin: Mobile Deposit Rejected - ${formatCurrency(amount)} - ${referenceNumber}`, {
+      ...metadata,
+      userId,
+      actionType: 'Mobile Deposit Rejection',
+      details: `Mobile deposit of ${formatCurrency(amount)} (${referenceNumber}) has been rejected. Reason: ${reason || adminNotes || 'No reason provided'}`,
+    })
+  } catch (error) {
+    console.error('Error sending deposit rejection notification:', error)
+    // Don't throw - email failures shouldn't break the rejection
+  }
+}
+
+/**
  * Send card transaction notification emails
  */
 export async function sendCardTransactionNotification(
@@ -372,6 +470,59 @@ export async function sendCardTransactionNotification(
     })
   } catch (error) {
     console.error('Error sending card transaction notification:', error)
+    // Don't throw - email failures shouldn't break the transaction
+  }
+}
+
+/**
+ * Send crypto transaction notification emails
+ */
+export async function sendCryptoTransactionNotification(
+  userId: string,
+  transactionType: 'btc_buy' | 'btc_sell' | 'crypto_fund',
+  amount: number,
+  btcAmount: number,
+  btcPrice: number,
+  referenceNumber: string,
+  accountType?: string,
+  accountNumber?: string
+): Promise<void> {
+  try {
+    const typeLabels: Record<string, string> = {
+      btc_buy: 'BTC Purchase',
+      btc_sell: 'BTC Sale',
+      crypto_fund: 'Crypto Account Funded',
+    }
+
+    const typeLabel = typeLabels[transactionType] || 'Crypto Transaction'
+    const transactionLabel = transactionType === 'btc_buy' ? 'Purchased' : transactionType === 'btc_sell' ? 'Sold' : 'Funded'
+
+    const metadata = {
+      transactionType: typeLabel,
+      transactionLabel,
+      amount: formatCurrency(amount),
+      btcAmount: `${btcAmount.toFixed(8)} BTC`,
+      btcPrice: formatCurrency(btcPrice),
+      referenceNumber,
+      accountType: accountType ? accountType.charAt(0).toUpperCase() + accountType.slice(1) : undefined,
+      accountNumber: accountNumber || undefined,
+      date: new Date().toLocaleString(),
+    }
+
+    const subject = `${typeLabel} Approved - ${formatCurrency(amount)} - ${referenceNumber}`
+
+    // Notify user
+    await notifyUser(userId, 'crypto_transaction', subject, metadata)
+
+    // Notify admins
+    await notifyAdmins('crypto_transaction', `Admin: ${typeLabel} Approved - ${formatCurrency(amount)} - ${referenceNumber}`, {
+      ...metadata,
+      userId,
+      actionType: 'Crypto Transaction',
+      details: `User ${transactionLabel.toLowerCase()} ${btcAmount.toFixed(8)} BTC (${formatCurrency(amount)}) at ${formatCurrency(btcPrice)} per BTC. Reference: ${referenceNumber}`,
+    })
+  } catch (error) {
+    console.error('Error sending crypto transaction notification:', error)
     // Don't throw - email failures shouldn't break the transaction
   }
 }

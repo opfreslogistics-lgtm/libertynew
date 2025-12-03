@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useStore } from '@/lib/store'
+import { useAccounts } from '@/lib/hooks/useAccounts'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import React from 'react'
 import { useTransactions } from '@/lib/hooks/useTransactions'
@@ -52,8 +52,8 @@ import {
 const COLORS = ['#047857', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']
 
 export default function HistoryPage() {
-  const { accounts } = useStore()
-  const { transactions: dbTransactions, loading: transactionsLoading, refreshTransactions } = useTransactions()
+  const { accounts } = useAccounts() // Only use real accounts from database
+  const { transactions: dbTransactions, refreshTransactions } = useTransactions()
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState('30days')
   const [category, setCategory] = useState('all')
@@ -65,7 +65,7 @@ export default function HistoryPage() {
   const [showFilters, setShowFilters] = useState(false)
 
   // Convert database transactions to store format for compatibility
-  const transactions = dbTransactions.map(txn => ({
+  const rawTransactions = dbTransactions.map(txn => ({
     id: txn.id,
     accountId: txn.account_id || '',
     type: txn.type,
@@ -78,6 +78,62 @@ export default function HistoryPage() {
     merchant: txn.merchant || undefined,
     location: undefined,
   }))
+
+  // Deduplicate transactions: Remove pending transactions if a completed version exists
+  // Extract reference number from description for better matching
+  const extractReferenceNumber = (description: string): string => {
+    if (!description) return ''
+    // Match patterns like "BTC SELL – REF123456" or "MD – REF123456"
+    const refMatch = description.match(/REF\d{6}/i)
+    if (refMatch) return refMatch[0]
+    // If no reference, use the full description
+    return description
+  }
+  
+  const transactionMap = new Map<string, typeof rawTransactions[0]>()
+  
+  rawTransactions.forEach(txn => {
+    // Extract reference number for better matching (works even if account_id differs)
+    const refNumber = extractReferenceNumber(txn.description || '')
+    
+    // Create a key based on reference number, amount, and type
+    // Don't include accountId since pending transactions may have null accountId
+    const key = refNumber 
+      ? `${refNumber}_${txn.amount}_${txn.type}`
+      : `${txn.description || ''}_${txn.amount}_${txn.type}_${txn.accountId || 'null'}`
+    
+    const existing = transactionMap.get(key)
+    
+    if (!existing) {
+      // No existing transaction with this key, add it
+      transactionMap.set(key, txn)
+    } else {
+      // Transaction with same key exists
+      const existingIsPending = existing.pending === true || existing.status === 'pending'
+      const currentIsPending = txn.pending === true || txn.status === 'pending'
+      
+      if (existingIsPending && !currentIsPending) {
+        // Existing is pending, current is completed - replace with completed
+        transactionMap.set(key, txn)
+      } else if (!existingIsPending && currentIsPending) {
+        // Existing is completed, current is pending - keep completed (don't replace)
+        // Do nothing, keep existing
+      } else if (existingIsPending && currentIsPending) {
+        // Both are pending - keep the most recent one
+        if (new Date(txn.date) > new Date(existing.date)) {
+          transactionMap.set(key, txn)
+        }
+      } else {
+        // Both are completed - keep the most recent one
+        if (new Date(txn.date) > new Date(existing.date)) {
+          transactionMap.set(key, txn)
+        }
+      }
+    }
+  })
+  
+  // Convert map back to array
+  const transactions = Array.from(transactionMap.values())
 
   const categories = [
     { name: 'All Categories', value: 'all', icon: Filter },
@@ -275,9 +331,14 @@ export default function HistoryPage() {
                 className="input-field"
               >
                 <option value="all">All Accounts</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>{acc.name}</option>
-                ))}
+                {accounts.map((acc) => {
+                  const accountName = acc.account_type 
+                    ? `${acc.account_type.charAt(0).toUpperCase() + acc.account_type.slice(1)} Account`
+                    : acc.name || 'Account'
+                  return (
+                    <option key={acc.id} value={acc.id}>{accountName}</option>
+                  )
+                })}
               </select>
             </div>
 

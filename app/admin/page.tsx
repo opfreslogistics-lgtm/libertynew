@@ -96,116 +96,192 @@ export default function AdminDashboard() {
     try {
       setRefreshing(true)
       
-      // Fetch all users (excluding admins from user count, but include them in totals)
-      const { data: usersData, error: usersError } = await supabase
-        .from('user_profiles')
-        .select('id, account_status, role')
+      // Fetch all users (including superadmins in total count, but exclude regular admins)
+      let totalUsers = 0
+      let activeUsers = 0
+      try {
+        const { data: usersData, error: usersError } = await supabase
+          .from('user_profiles')
+          .select('id, account_status, role')
 
-      if (usersError) {
-        console.error('Error fetching users:', usersError)
+        if (usersError) {
+          console.error('Error fetching users:', usersError)
+        } else if (usersData) {
+          // Count regular users and superadmins (exclude regular admins)
+          totalUsers = usersData.filter(u => 
+            u.role === 'user' || 
+            u.role === 'superadmin' || 
+            !u.role
+          ).length
+          // Active users: only count regular users (exclude superadmins and admins)
+          activeUsers = usersData.filter(u => 
+            (u.role === 'user' || !u.role) && 
+            u.account_status === 'active'
+          ).length
+        }
+      } catch (err) {
+        console.error('Exception fetching users:', err)
       }
-
-      // Count only regular users (not admins)
-      const totalUsers = usersData?.filter(u => u.role === 'user')?.length || 0
-      const activeUsers = usersData?.filter(u => u.role === 'user' && u.account_status === 'active')?.length || 0
 
       // Fetch ALL accounts and calculate total balance (including all account types)
-      const { data: accountsData, error: accountsError } = await supabase
-        .from('accounts')
-        .select('balance, account_type, status')
+      let totalBalance = 0
+      let accountTypesData: { name: string; value: number; color: string }[] = []
+      
+      try {
+        const { data: accountsData, error: accountsError } = await supabase
+          .from('accounts')
+          .select('balance, account_type, status')
 
-      if (accountsError) {
-        console.error('Error fetching accounts:', accountsError)
+        if (accountsError) {
+          console.error('Error fetching accounts:', accountsError)
+        } else if (accountsData) {
+          // Calculate total balance from all active accounts
+          totalBalance = accountsData
+            .filter(acc => acc.status === 'active')
+            .reduce((sum, acc) => {
+              const balance = parseFloat(acc.balance?.toString() || '0')
+              return sum + (isNaN(balance) ? 0 : balance)
+            }, 0)
+
+          // Account types distribution
+          const accountTypeMap = new Map<string, number>()
+          accountsData.forEach(acc => {
+            const type = acc.account_type || 'unknown'
+            accountTypeMap.set(type, (accountTypeMap.get(type) || 0) + 1)
+          })
+
+          accountTypesData = Array.from(accountTypeMap.entries()).map(([name, value], index) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            value,
+            color: COLORS[index % COLORS.length],
+          }))
+        }
+      } catch (err) {
+        console.error('Exception fetching accounts:', err)
       }
 
-      // Calculate total balance from all active accounts
-      const totalBalance = accountsData
-        ?.filter(acc => acc.status === 'active')
-        ?.reduce((sum, acc) => {
-          const balance = parseFloat(acc.balance?.toString() || '0')
-          return sum + (isNaN(balance) ? 0 : balance)
-        }, 0) || 0
-
-      // Account types distribution
-      const accountTypeMap = new Map<string, number>()
-      accountsData?.forEach(acc => {
-        const type = acc.account_type
-        accountTypeMap.set(type, (accountTypeMap.get(type) || 0) + 1)
-      })
-
-      const accountTypesData = Array.from(accountTypeMap.entries()).map(([name, value], index) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        value,
-        color: COLORS[index % COLORS.length],
-      }))
-
       // Fetch pending KYC
-      const { data: kycData, error: kycError } = await supabase
-        .from('kyc_verifications')
-        .select('id')
-        .eq('status', 'pending')
+      let pendingKYC = 0
+      try {
+        const { data: kycData, error: kycError } = await supabase
+          .from('kyc_verifications')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending')
 
-      if (kycError) console.warn('Error fetching KYC data:', kycError)
-      const pendingKYC = kycData?.length || 0
+        if (kycError) {
+          console.error('Error fetching KYC data:', kycError)
+        } else {
+          pendingKYC = kycData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching KYC:', err)
+      }
 
       // Fetch pending loans
-      const { data: loansData, error: loansError } = await supabase
-        .from('loans')
-        .select('id')
-        .eq('status', 'pending')
+      let pendingLoans = 0
+      try {
+        const { data: loansData, error: loansError } = await supabase
+          .from('loans')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending')
 
-      if (loansError) console.warn('Error fetching loans data:', loansError)
-      const pendingLoans = loansData?.length || 0
+        if (loansError) {
+          console.error('Error fetching loans data:', loansError)
+        } else {
+          pendingLoans = loansData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching loans:', err)
+      }
 
       // Fetch pending mobile deposits
-      const { data: depositsData, error: depositsError } = await supabase
-        .from('mobile_deposits')
-        .select('id')
-        .eq('status', 'pending')
+      let pendingMobileDeposits = 0
+      try {
+        const { data: depositsData, error: depositsError } = await supabase
+          .from('mobile_deposits')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending')
 
-      if (depositsError) console.warn('Error fetching mobile deposits data:', depositsError)
-      const pendingMobileDeposits = depositsData?.length || 0
+        if (depositsError) {
+          console.error('Error fetching mobile deposits data:', depositsError)
+        } else {
+          pendingMobileDeposits = depositsData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching mobile deposits:', err)
+      }
 
       // Fetch pending support tickets
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from('support_tickets')
-        .select('id')
-        .in('status', ['open', 'in_progress'])
+      let pendingSupportTickets = 0
+      try {
+        const { data: ticketsData, error: ticketsError } = await supabase
+          .from('support_tickets')
+          .select('id', { count: 'exact' })
+          .in('status', ['open', 'in_progress'])
 
-      if (ticketsError) console.warn('Error fetching support tickets data:', ticketsError)
-      const pendingSupportTickets = ticketsData?.length || 0
+        if (ticketsError) {
+          console.error('Error fetching support tickets data:', ticketsError)
+        } else {
+          pendingSupportTickets = ticketsData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching support tickets:', err)
+      }
 
       // Fetch pending crypto buy requests
-      const { data: cryptoBuysData, error: cryptoBuysError } = await supabase
-        .from('crypto_transactions')
-        .select('id')
-        .eq('transaction_type', 'btc_buy')
-        .eq('status', 'pending')
+      let pendingCryptoBuys = 0
+      try {
+        const { data: cryptoBuysData, error: cryptoBuysError } = await supabase
+          .from('crypto_transactions')
+          .select('id', { count: 'exact' })
+          .eq('transaction_type', 'btc_buy')
+          .eq('status', 'pending')
 
-      if (cryptoBuysError) console.warn('Error fetching crypto buys data:', cryptoBuysError)
-      const pendingCryptoBuys = cryptoBuysData?.length || 0
+        if (cryptoBuysError) {
+          console.error('Error fetching crypto buys data:', cryptoBuysError)
+        } else {
+          pendingCryptoBuys = cryptoBuysData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching crypto buys:', err)
+      }
 
       // Fetch pending crypto sell requests
-      const { data: cryptoSellsData, error: cryptoSellsError } = await supabase
-        .from('crypto_transactions')
-        .select('id')
-        .eq('transaction_type', 'btc_sell')
-        .eq('status', 'pending')
+      let pendingCryptoSells = 0
+      try {
+        const { data: cryptoSellsData, error: cryptoSellsError } = await supabase
+          .from('crypto_transactions')
+          .select('id', { count: 'exact' })
+          .eq('transaction_type', 'btc_sell')
+          .eq('status', 'pending')
 
-      if (cryptoSellsError) console.warn('Error fetching crypto sells data:', cryptoSellsError)
-      const pendingCryptoSells = cryptoSellsData?.length || 0
+        if (cryptoSellsError) {
+          console.error('Error fetching crypto sells data:', cryptoSellsError)
+        } else {
+          pendingCryptoSells = cryptoSellsData?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching crypto sells:', err)
+      }
 
       // Calculate fraud alerts (transactions flagged or suspicious patterns)
       // Check for transactions with suspicious patterns: large amounts, failed transactions, etc.
-      const { data: suspiciousTransactions, error: fraudError } = await supabase
-        .from('transactions')
-        .select('id, amount, status, type')
-        .or('status.eq.failed,status.eq.rejected')
-        .limit(100)
+      let fraudAlerts = 0
+      try {
+        const { data: suspiciousTransactions, error: fraudError } = await supabase
+          .from('transactions')
+          .select('id', { count: 'exact' })
+          .or('status.eq.failed,status.eq.rejected')
+          .limit(100)
 
-      // Count failed/rejected transactions as potential fraud alerts
-      // Ignore fraudError if it occurs - it's not critical
-      const fraudAlerts = suspiciousTransactions?.length || 0
+        if (fraudError) {
+          console.error('Error fetching fraud alerts:', fraudError)
+        } else {
+          fraudAlerts = suspiciousTransactions?.length || 0
+        }
+      } catch (err) {
+        console.error('Exception fetching fraud alerts:', err)
+      }
 
       // Fetch transactions for trend
       const { data: transactionsData, error: transactionsError } = await supabase
@@ -425,12 +501,31 @@ export default function AdminDashboard() {
         pendingKYC,
         pendingLoans,
         pendingMobileDeposits,
+        pendingCryptoBuys,
+        pendingCryptoSells,
         pendingSupportTickets,
+        revenue: totalDeposits - totalWithdrawals,
+        fraudAlerts,
       })
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      console.error('[Admin Dashboard] Error fetching dashboard data:', error)
       // Even on error, try to set whatever stats we have
-      setStats(prev => prev) // Keep previous stats if error occurs
+      // Don't keep previous stats - set to 0 to show that data couldn't be loaded
+      setStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        totalBalance: 0,
+        totalDeposits: 0,
+        totalWithdrawals: 0,
+        pendingKYC: 0,
+        pendingLoans: 0,
+        pendingMobileDeposits: 0,
+        pendingCryptoBuys: 0,
+        pendingCryptoSells: 0,
+        pendingSupportTickets: 0,
+        revenue: 0,
+        fraudAlerts: 0,
+      })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -535,25 +630,25 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="max-w-[1600px] mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             Welcome back, {firstName}!
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             {(['today', 'week', 'month', 'year'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
                 className={clsx(
-                  'px-4 py-2 text-sm font-semibold transition-all capitalize',
+                  'px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all capitalize',
                   timeRange === range
                     ? 'bg-green-700 text-white'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -574,87 +669,87 @@ export default function AdminDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-700 dark:text-green-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-700 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : stats.totalUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Users</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Activity className="w-6 h-6 text-blue-700 dark:text-blue-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+              <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700 dark:text-blue-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : stats.activeUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Active Users</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Active Users</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-purple-700 dark:text-purple-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700 dark:text-purple-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : formatCurrency(stats.totalBalance)}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Balance</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Balance</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-emerald-700 dark:text-emerald-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-700 dark:text-emerald-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : formatCurrency(stats.totalDeposits)}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Deposits</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Deposits</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-              <TrendingDown className="w-6 h-6 text-orange-700 dark:text-orange-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+              <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-orange-700 dark:text-orange-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : formatCurrency(stats.totalWithdrawals)}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Withdrawals</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Withdrawals</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-indigo-700 dark:text-indigo-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-700 dark:text-indigo-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {loading ? '...' : formatCurrency(stats.revenue)}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Net Revenue</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Net Revenue</p>
         </div>
       </div>
 
       {/* Pending Actions Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link href="/admin/kyc">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-yellow-700 dark:text-yellow-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                <UserCheck className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-700 dark:text-yellow-400" />
               </div>
               {stats.pendingKYC > 0 && (
                 <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded-full font-semibold">
@@ -662,18 +757,18 @@ export default function AdminDashboard() {
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {loading ? '...' : stats.pendingKYC}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">KYC Pending</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">KYC Pending</p>
           </div>
         </Link>
 
         <Link href="/admin/loans">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-blue-700 dark:text-blue-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700 dark:text-blue-400" />
               </div>
               {stats.pendingLoans > 0 && (
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-semibold">
@@ -681,18 +776,18 @@ export default function AdminDashboard() {
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {loading ? '...' : stats.pendingLoans}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Loan Applications</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Loan Applications</p>
           </div>
         </Link>
 
         <Link href="/admin/mobile-deposits">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-purple-700 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700 dark:text-purple-400" />
               </div>
               {stats.pendingMobileDeposits > 0 && (
                 <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-full font-semibold">
@@ -700,18 +795,18 @@ export default function AdminDashboard() {
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {loading ? '...' : stats.pendingMobileDeposits}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Mobile Deposits</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Mobile Deposits</p>
           </div>
         </Link>
 
         <Link href="/admin/support">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                <Bell className="w-6 h-6 text-red-700 dark:text-red-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-red-700 dark:text-red-400" />
               </div>
               {stats.pendingSupportTickets > 0 && (
                 <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full font-semibold">
@@ -719,28 +814,29 @@ export default function AdminDashboard() {
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {loading ? '...' : stats.pendingSupportTickets}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Support Tickets</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Support Tickets</p>
           </div>
         </Link>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Transaction Trend */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               Transaction Trends
             </h2>
-            <button className="text-sm text-green-700 dark:text-green-400 font-semibold hover:underline">
+            <button className="text-xs sm:text-sm text-green-700 dark:text-green-400 font-semibold hover:underline self-start sm:self-auto">
               View Details
             </button>
           </div>
           {transactionTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={250} minHeight={250}>
               <AreaChart data={transactionTrend}>
               <defs>
                 <linearGradient id="colorDeposits" x1="0" y1="0" x2="0" y2="1">
@@ -794,21 +890,23 @@ export default function AdminDashboard() {
                 strokeWidth={2}
               />
             </AreaChart>
-          </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
               <p>No transaction data available yet</p>
             </div>
           )}
         </div>
 
         {/* Account Distribution */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
             Account Types
           </h2>
           {accountTypes.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <div className="w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minHeight={200}>
               <RechartsPieChart>
                 <Pie
                   data={accountTypes}
@@ -835,16 +933,17 @@ export default function AdminDashboard() {
                 }}
               />
             </RechartsPieChart>
-          </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
               <p>No account data available yet</p>
             </div>
           )}
           {accountTypes.length > 0 && (
             <div className="space-y-2 mt-4">
               {accountTypes.map((type, index) => (
-              <div key={index} className="flex items-center justify-between text-sm">
+              <div key={index} className="flex items-center justify-between text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <div
                     className="w-3 h-3 rounded-full"
@@ -863,25 +962,25 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon
               return (
                 <Link key={index} href={action.href}>
-                  <button className="w-full p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all group">
+                  <button className="w-full p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all group">
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform"
                       style={{ backgroundColor: action.color + '20' }}
                     >
-                      <Icon className="w-6 h-6" style={{ color: action.color }} />
+                      <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: action.color }} />
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white text-center">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white text-center">
                       {action.label}
                     </p>
                   </button>
@@ -892,8 +991,8 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
             Recent Activity
           </h2>
           {recentActivities.length > 0 ? (

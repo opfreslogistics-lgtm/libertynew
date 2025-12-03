@@ -69,9 +69,31 @@ const createTransporter = () => {
   }
 }
 
+// Handle CORS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Parse request body with error handling
+    let body
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
+    
     const { recipientEmail, recipientName, otpCode } = body
 
     // Validate required fields
@@ -132,19 +154,39 @@ export async function POST(request: NextRequest) {
       otpCode,
     })
 
-    return NextResponse.json({
-      success: true,
-      message: 'OTP email sent successfully',
-      messageId: info.messageId,
-    })
-  } catch (error: any) {
-    console.error('❌ Error sending OTP email:', error)
     return NextResponse.json(
       {
-        error: 'Failed to send OTP email',
-        details: error.message,
+        success: true,
+        message: 'OTP email sent successfully',
+        messageId: info.messageId,
       },
-      { status: 500 }
+      {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      }
+    )
+  } catch (error: any) {
+    console.error('❌ Error sending OTP email:', error)
+    
+    // Return a proper error response
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to send OTP email',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+      {
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      }
     )
   }
 }

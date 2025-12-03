@@ -69,7 +69,7 @@ const CHART_COLORS = ['#047857', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']
 
 export default function DashboardPage() {
   const { budgets } = useStore()
-  const { accounts, loading: accountsLoading, refreshAccounts } = useAccounts() // Fetch real accounts from database
+  const { accounts, refreshAccounts } = useAccounts() // Fetch real accounts from database - no loading state
   const { transactions: dbTransactions, refreshTransactions } = useTransactions() // Fetch real transactions from database
   const [showBalance, setShowBalance] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month')
@@ -79,7 +79,7 @@ export default function DashboardPage() {
   const firstName = profile?.first_name || 'User'
 
   // Convert database transactions to store format for compatibility
-  const transactions = dbTransactions.map(txn => ({
+  const rawTransactions = dbTransactions.map(txn => ({
     id: txn.id,
     accountId: txn.account_id || '',
     type: txn.type,
@@ -88,9 +88,66 @@ export default function DashboardPage() {
     category: txn.category || '',
     date: new Date(txn.date),
     pending: txn.pending,
+    status: txn.status || (txn.pending ? 'pending' : 'completed'), // Ensure status is set
     merchant: txn.merchant || undefined,
     location: undefined,
   }))
+
+  // Deduplicate transactions: Remove pending transactions if a completed version exists
+  // Extract reference number from description for better matching
+  const extractReferenceNumber = (description: string): string => {
+    if (!description) return ''
+    // Match patterns like "BTC SELL – REF123456" or "MD – REF123456"
+    const refMatch = description.match(/REF\d{6}/i)
+    if (refMatch) return refMatch[0]
+    // If no reference, use the full description
+    return description
+  }
+  
+  const transactionMap = new Map<string, typeof rawTransactions[0]>()
+  
+  rawTransactions.forEach(txn => {
+    // Extract reference number for better matching (works even if account_id differs)
+    const refNumber = extractReferenceNumber(txn.description || '')
+    
+    // Create a key based on reference number, amount, and type
+    // Don't include accountId since pending transactions may have null accountId
+    const key = refNumber 
+      ? `${refNumber}_${txn.amount}_${txn.type}`
+      : `${txn.description || ''}_${txn.amount}_${txn.type}_${txn.accountId || 'null'}`
+    
+    const existing = transactionMap.get(key)
+    
+    if (!existing) {
+      // No existing transaction with this key, add it
+      transactionMap.set(key, txn)
+    } else {
+      // Transaction with same key exists
+      const existingIsPending = existing.pending === true || existing.status === 'pending'
+      const currentIsPending = txn.pending === true || txn.status === 'pending'
+      
+      if (existingIsPending && !currentIsPending) {
+        // Existing is pending, current is completed - replace with completed
+        transactionMap.set(key, txn)
+      } else if (!existingIsPending && currentIsPending) {
+        // Existing is completed, current is pending - keep completed (don't replace)
+        // Do nothing, keep existing
+      } else if (existingIsPending && currentIsPending) {
+        // Both are pending - keep the most recent one
+        if (new Date(txn.date) > new Date(existing.date)) {
+          transactionMap.set(key, txn)
+        }
+      } else {
+        // Both are completed - keep the most recent one
+        if (new Date(txn.date) > new Date(existing.date)) {
+          transactionMap.set(key, txn)
+        }
+      }
+    }
+  })
+  
+  // Convert map back to array
+  const transactions = Array.from(transactionMap.values())
 
   // Refresh transactions and accounts when component mounts (only once)
   useEffect(() => {
@@ -105,7 +162,7 @@ export default function DashboardPage() {
   
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && !accountsLoading) {
+      if (!document.hidden) {
         // Clear any pending refresh
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current)
@@ -119,17 +176,15 @@ export default function DashboardPage() {
     }
 
     const handleFocus = () => {
-      if (!accountsLoading) {
-        // Clear any pending refresh
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current)
-        }
-        // Debounce the refresh
-        refreshTimeoutRef.current = setTimeout(() => {
-          refreshAccounts()
-          refreshTransactions()
-        }, 500)
+      // Clear any pending refresh
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
       }
+      // Debounce the refresh
+      refreshTimeoutRef.current = setTimeout(() => {
+        refreshAccounts()
+        refreshTransactions()
+      }, 500)
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -456,14 +511,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Account Cards Grid - Display only real accounts from database */}
-      {accountsLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3" />
-            <p className="text-gray-600 dark:text-gray-400">Loading accounts...</p>
-          </div>
-        </div>
-      ) : accounts.length === 0 ? (
+      {accounts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 text-center">
           <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Accounts Yet</h3>

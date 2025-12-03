@@ -436,6 +436,22 @@ export default function AdminCryptoPage() {
             },
           ])
 
+        // Send email notification
+        try {
+          const { sendCryptoTransactionNotification } = await import('@/lib/utils/emailNotifications')
+          await sendCryptoTransactionNotification(
+            transaction.user_id,
+            'btc_buy',
+            transaction.amount,
+            btcToAdd,
+            purchasePrice,
+            transaction.reference_number
+          )
+        } catch (emailError) {
+          console.error('[AdminCrypto] Error sending email notification:', emailError)
+          // Don't fail the approval if email fails
+        }
+
         console.log('[AdminCrypto] Approval completed successfully for buy order:', {
           transaction_id: transaction.id,
           user_id: transaction.user_id,
@@ -477,6 +493,32 @@ export default function AdminCryptoPage() {
         const selectedAccount = userAccounts.find(acc => acc.id === selectedAccountId)
         if (!selectedAccount) {
           throw new Error('Selected account not found')
+        }
+
+        // Find and delete pending transaction with same reference number
+        const { data: pendingTransactions, error: findError } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('user_id', transaction.user_id)
+          .eq('description', `BTC SELL – ${transaction.reference_number}`)
+          .or('pending.eq.true,status.eq.pending')
+
+        if (findError) {
+          console.error('Error finding pending transactions:', findError)
+        } else if (pendingTransactions && pendingTransactions.length > 0) {
+          // Delete all pending transactions with this description
+          const transactionIdsToDelete = pendingTransactions.map(t => t.id)
+          const { error: deleteError } = await supabase
+            .from('transactions')
+            .delete()
+            .in('id', transactionIdsToDelete)
+
+          if (deleteError) {
+            console.error('Error deleting pending transactions:', deleteError)
+            // Continue anyway - we'll create a new transaction
+          } else {
+            console.log(`Deleted ${pendingTransactions.length} pending transaction(s) for ${transaction.reference_number}`)
+          }
         }
 
         // Add USD to selected account (via transaction)
@@ -599,6 +641,25 @@ export default function AdminCryptoPage() {
               read: false,
             },
           ])
+
+        // Send email notification
+        try {
+          const { sendCryptoTransactionNotification } = await import('@/lib/utils/emailNotifications')
+          const btcPrice = transaction.btc_price || (transaction.amount / transaction.btc_amount)
+          await sendCryptoTransactionNotification(
+            transaction.user_id,
+            'btc_sell',
+            transaction.amount,
+            transaction.btc_amount,
+            btcPrice,
+            transaction.reference_number,
+            selectedAccount.account_type,
+            selectedAccount.account_number || selectedAccount.last4 ? `****${(selectedAccount.account_number || selectedAccount.last4)?.slice(-4)}` : undefined
+          )
+        } catch (emailError) {
+          console.error('[AdminCrypto] Error sending email notification:', emailError)
+          // Don't fail the approval if email fails
+        }
 
         setNotification({
           isOpen: true,
@@ -844,26 +905,26 @@ export default function AdminCryptoPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="max-w-[1600px] mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             Crypto Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             Review and process cryptocurrency transactions. BTC purchases are auto-approved. Only BTC sales require admin approval.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <button
             onClick={fetchTransactions}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-sm font-semibold"
+            className="px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <button className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-semibold shadow-lg hover:shadow-xl active:scale-95">
+          <button className="px-3 sm:px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-xl transition-all flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold shadow-lg hover:shadow-xl active:scale-95">
             <Download className="w-4 h-4" />
             Export
           </button>
@@ -871,71 +932,71 @@ export default function AdminCryptoPage() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-700 dark:text-yellow-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-700 dark:text-yellow-400" />
             </div>
             <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded-full font-semibold">
               Pending
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {totalPending}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Awaiting review</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Awaiting review</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-700 dark:text-green-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-700 dark:text-green-400" />
             </div>
             <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full font-semibold">
               Buy Requests
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {pendingBuyCount}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Pending BTC buys</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Pending BTC buys</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-              <TrendingDown className="w-6 h-6 text-red-700 dark:text-red-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+              <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-700 dark:text-red-400" />
             </div>
             <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full font-semibold">
               Sell Requests
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {pendingSellCount}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Pending BTC sells</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Pending BTC sells</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Bitcoin className="w-6 h-6 text-blue-700 dark:text-blue-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+              <Bitcoin className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700 dark:text-blue-400" />
             </div>
             <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full font-semibold">
               Total
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
             {transactions.length}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">All transactions</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">All transactions</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -972,7 +1033,7 @@ export default function AdminCryptoPage() {
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
@@ -983,8 +1044,120 @@ export default function AdminCryptoPage() {
             <p className="text-gray-500 dark:text-gray-400">No transactions found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredTransactions.map((txn) => {
+                const TypeIcon = getTransactionIcon(txn.transaction_type)
+                return (
+                  <div
+                    key={txn.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Transaction Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <TypeIcon className="w-5 h-5 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+                          <p className="font-semibold text-base text-gray-900 dark:text-white">
+                            {getTransactionTypeLabel(txn.transaction_type)}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
+                          {txn.user_name || 'Unknown'} • {txn.user_email}
+                        </p>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            txn.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              : txn.status === 'completed'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {txn.status === 'pending' ? 'Pending' : 
+                             txn.status === 'completed' ? 'Completed' : 'Cancelled'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Ref: {txn.reference_number}
+                        </p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                          {formatCurrency(txn.amount)}
+                        </p>
+                        {txn.btc_amount > 0 && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {txn.btc_amount.toFixed(6)} BTC
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        {txn.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedTransaction(txn)
+                                setAdminNotes('')
+                                if (txn.transaction_type === 'btc_sell') {
+                                  fetchUserAccounts(txn.user_id)
+                                }
+                              }}
+                              className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {txn.transaction_type === 'btc_sell' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(txn)}
+                                  disabled={isProcessing && processingTransactionId !== txn.id}
+                                  className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Approve"
+                                >
+                                  {processingTransactionId === txn.id ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-4 h-4" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedTransaction(txn)
+                                    setAdminNotes('')
+                                  }}
+                                  className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                                  title="Cancel"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                        {txn.status !== 'pending' && (
+                          <button
+                            onClick={() => {
+                              setSelectedTransaction(txn)
+                              setAdminNotes(txn.admin_notes || '')
+                            }}
+                            className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -1150,8 +1323,9 @@ export default function AdminCryptoPage() {
                   )
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

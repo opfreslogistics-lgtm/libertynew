@@ -13,7 +13,7 @@ interface AdminTopBarProps {
 export function AdminTopBar({ onMenuClick }: AdminTopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
-  const { profile, loading, initials, fullName } = useUserProfile()
+  const { profile, initials, fullName } = useUserProfile() // No loading state - use static data
 
   // Real notifications - Will be fetched from database
   const notifications: {
@@ -67,7 +67,7 @@ export function AdminTopBar({ onMenuClick }: AdminTopBarProps) {
               </div>
             ) : (
               <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {loading ? '...' : initials}
+                {initials}
               </div>
             )}
           </div>
@@ -207,15 +207,15 @@ export function AdminTopBar({ onMenuClick }: AdminTopBarProps) {
                   </div>
                 ) : (
                   <div className="w-9 h-9 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {loading ? '...' : initials}
+                    {initials}
                   </div>
                 )}
                 <div className="text-left hidden lg:block">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {loading ? 'Loading...' : fullName}
+                    {fullName}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {loading ? '...' : (profile?.role === 'superadmin' ? 'Super Admin' : 'Admin')}
+                    {profile?.role === 'superadmin' ? 'Super Admin' : 'Admin'}
                   </p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 hidden lg:block" />
@@ -244,7 +244,7 @@ export function AdminTopBar({ onMenuClick }: AdminTopBarProps) {
                           {fullName}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {loading ? 'Loading...' : (profile?.email || 'No email')}
+                          {profile?.email || 'No email'}
                         </p>
                       </div>
                     </div>

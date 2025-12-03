@@ -1,15 +1,67 @@
 /**
  * Send OTP API Route
- * Generates and sends a 6-digit OTP code via email using Resend
+ * Generates and sends a 6-digit OTP code via email using Nodemailer
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
+import { getOTPEmailTemplate } from '@/lib/utils/emailTemplates'
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Liberty Bank <noreply@libertybank.com>'
-const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'support@libertybank.com'
+// Create transporter using environment variables (same as other email routes)
+const createTransporter = () => {
+  const emailService = process.env.EMAIL_SERVICE || 'gmail'
+  const emailUser = process.env.EMAIL_USER || process.env.EMAIL_FROM
+  const emailPassword = process.env.EMAIL_PASSWORD || process.env.EMAIL_APP_PASSWORD
+  const emailHost = process.env.EMAIL_HOST
+  const emailPort = parseInt(process.env.EMAIL_PORT || '587')
+  const emailSecure = process.env.EMAIL_SECURE === 'true'
+
+  if (!emailUser || !emailPassword) {
+    console.warn('EMAIL_USER and EMAIL_PASSWORD are required for Nodemailer')
+    return null
+  }
+
+  if (emailHost) {
+    return nodemailer.createTransport({
+      host: emailHost,
+      port: emailPort,
+      secure: emailSecure,
+      auth: {
+        user: emailUser,
+        pass: emailPassword,
+      },
+    })
+  } else if (emailService === 'gmail') {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: emailUser,
+        pass: emailPassword,
+      },
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
+      tls: {
+        rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+      },
+    })
+  } else {
+    return nodemailer.createTransport({
+      service: emailService,
+      auth: {
+        user: emailUser,
+        pass: emailPassword,
+      },
+    })
+  }
+}
+
+const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'Liberty Bank <noreply@libertybank.com>'
+const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@libertybank.com'
 
 const OTP_EXPIRY_MINUTES = 5
 const MAX_OTP_REQUESTS_PER_HOUR = 5
@@ -67,7 +119,7 @@ async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remai
 }
 
 /**
- * Send OTP email using Resend
+ * Send OTP email using Nodemailer
  */
 async function sendOTPEmail(
   recipientEmail: string,
@@ -75,8 +127,10 @@ async function sendOTPEmail(
   otpCode: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not configured. Email would be sent in production.')
+    const transporter = createTransporter()
+    
+    if (!transporter) {
+      console.warn('EMAIL_USER and EMAIL_PASSWORD not configured. Email would be sent in production.')
       console.log('OTP Email would be sent:', {
         to: recipientEmail,
         otpCode,
@@ -85,77 +139,25 @@ async function sendOTPEmail(
       return { success: true } // Return success for development
     }
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Your One-Time Login Code</title>
-      </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5; padding: 20px;">
-          <tr>
-            <td align="center">
-              <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <tr>
-                  <td style="padding: 30px 30px 20px; text-align: center; background: linear-gradient(135deg, #047857 0%, #10b981 100%); border-radius: 8px 8px 0 0;">
-                    <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Liberty National Bank</h1>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 30px;">
-                    <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 20px; font-weight: 600;">Your One-Time Login Code</h2>
-                    <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                      Hello ${recipientName},
-                    </p>
-                    <p style="margin: 0 0 30px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                      Your login verification code is: <strong style="font-size: 24px; color: #047857; letter-spacing: 4px;">${otpCode}</strong>
-                    </p>
-                    <p style="margin: 0 0 20px; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                      This code is valid for ${OTP_EXPIRY_MINUTES} minutes. Please enter it to complete your login.
-                    </p>
-                    <div style="margin: 30px 0; padding: 20px; background-color: #f3f4f6; border-radius: 8px; border-left: 4px solid #ef4444;">
-                      <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                        <strong>Security Notice:</strong> If you did not request this code, please ignore this message and contact our support team immediately.
-                      </p>
-                    </div>
-                    <p style="margin: 30px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                      Thank you for banking with Liberty National Bank.
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 20px 30px; text-align: center; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
-                    <p style="margin: 0; color: #6b7280; font-size: 12px;">
-                      This is an automated message. Please do not reply to this email.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `
+    // Get email template
+    const emailTemplate = getOTPEmailTemplate({
+      recipientName,
+      otpCode,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    })
 
-    const { data, error } = await resend.emails.send({
+    // Send email using Nodemailer
+    const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to: recipientEmail,
       replyTo: REPLY_TO_EMAIL,
-      subject: 'Your One-Time Login Code',
-      html: emailHtml,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
     })
-
-    if (error) {
-      console.error('Resend error sending OTP email:', error)
-      return { success: false, error: error.message || 'Failed to send email' }
-    }
 
     console.log('OTP email sent successfully:', {
       to: recipientEmail,
-      messageId: data?.id,
+      messageId: info.messageId,
     })
 
     return { success: true }

@@ -446,9 +446,110 @@ export default function AdminKYCPage() {
       </div>
 
       {/* KYC Applications Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : filteredApplications.length === 0 ? (
+          <div className="text-center py-12">
+            <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-50" />
+            <p className="text-gray-500 dark:text-gray-400">No KYC applications found</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredApplications.map((kyc) => {
+                const hasIdFront = !!kyc.id_front_url
+                const hasIdBack = !!kyc.id_back_url
+                const hasProofOfAddress = !!kyc.proof_of_address_url
+                const hasSelfie = !!kyc.selfie_url
+                const documentsCount = [hasIdFront, hasIdBack, hasProofOfAddress, hasSelfie].filter(Boolean).length
+
+                return (
+                  <div
+                    key={kyc.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* KYC Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {kyc.user_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-base text-gray-900 dark:text-white truncate">
+                              {kyc.user_name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {kyc.id.substring(0, 8)}...
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getStatusColor(kyc.status))}>
+                            {kyc.status === 'under_review' ? 'Under Review' : kyc.status.charAt(0).toUpperCase() + kyc.status.slice(1)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">
+                          <Mail className="w-3 h-3 inline mr-1" />
+                          {kyc.user_email}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          <Phone className="w-3 h-3 inline mr-1" />
+                          {kyc.phone_number}
+                        </p>
+                        <div className="flex items-center gap-1 mb-1">
+                          {hasIdFront && (
+                            <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center" title="ID Front">
+                              <FileText className="w-3 h-3 text-green-700 dark:text-green-400" />
+                            </div>
+                          )}
+                          {hasIdBack && (
+                            <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center" title="ID Back">
+                              <FileText className="w-3 h-3 text-green-700 dark:text-green-400" />
+                            </div>
+                          )}
+                          {hasProofOfAddress && (
+                            <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center" title="Proof of Address">
+                              <FileText className="w-3 h-3 text-green-700 dark:text-green-400" />
+                            </div>
+                          )}
+                          {hasSelfie && (
+                            <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center" title="Selfie">
+                              <ImageIcon className="w-3 h-3 text-green-700 dark:text-green-400" />
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                            {documentsCount}/4
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(kyc.submitted_at || kyc.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      
+                      {/* Action Button */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleViewKYC(kyc.id)}
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center gap-1 text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -475,37 +576,18 @@ export default function AdminKYCPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                      <p className="text-gray-600 dark:text-gray-400">Loading KYC applications...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredApplications.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Shield className="w-16 h-16 text-gray-400 mb-4 opacity-50" />
-                      <p className="text-gray-600 dark:text-gray-400">No KYC applications found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredApplications.map((kyc) => {
-                  const hasIdFront = !!kyc.id_front_url
-                  const hasIdBack = !!kyc.id_back_url
-                  const hasProofOfAddress = !!kyc.proof_of_address_url
-                  const hasSelfie = !!kyc.selfie_url
-                  const documentsCount = [hasIdFront, hasIdBack, hasProofOfAddress, hasSelfie].filter(Boolean).length
+              {filteredApplications.map((kyc) => {
+                const hasIdFront = !!kyc.id_front_url
+                const hasIdBack = !!kyc.id_back_url
+                const hasProofOfAddress = !!kyc.proof_of_address_url
+                const hasSelfie = !!kyc.selfie_url
+                const documentsCount = [hasIdFront, hasIdBack, hasProofOfAddress, hasSelfie].filter(Boolean).length
 
-                  return (
-                <tr
-                  key={kyc.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
+                return (
+                  <tr
+                    key={kyc.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -583,12 +665,13 @@ export default function AdminKYCPage() {
                     </div>
                   </td>
                 </tr>
-                  )
-                })
-              )}
+                )
+              })}
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Image Modal */}

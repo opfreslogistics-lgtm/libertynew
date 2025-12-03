@@ -42,7 +42,7 @@ import { formatCurrency } from '@/lib/utils'
 export function RightSidebar() {
   const router = useRouter()
   const [showQuickPay, setShowQuickPay] = useState(false)
-  const { profile, loading: profileLoading } = useUserProfile()
+  const { profile } = useUserProfile()
   const { notifications: dbNotifications, loading: notificationsLoading, unreadCount, refreshNotifications, markAsRead } = useNotifications()
 
   // Get credit score from user profile
@@ -78,9 +78,12 @@ export function RightSidebar() {
     return formatDate(date)
   }
 
-  // Format notifications for display - Show all notifications
+  // Format notifications for display - Show only latest 2 notifications
   const displayNotifications = useMemo(() => {
-    return dbNotifications.map(notif => {
+    // Get only the latest 2 notifications
+    const latestNotifications = dbNotifications.slice(0, 2)
+    
+    return latestNotifications.map(notif => {
     // Determine icon based on notification type
     let Icon = Bell
     let type: 'success' | 'warning' | 'info' = 'info'
@@ -116,17 +119,11 @@ export function RightSidebar() {
 
   const notifications = displayNotifications
 
-  // Refresh notifications periodically but only update if there are changes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshNotifications()
-    }, 60000) // Refresh every 60 seconds (reduced frequency to prevent flickering)
+  // Real-time updates are handled by the useNotifications hook
+  // No need for periodic refresh since we have real-time subscriptions
 
-    return () => clearInterval(interval)
-  }, [refreshNotifications])
-
-  // Bills state
-  const [bills, setBills] = useState<Array<{
+  // Bills state - Static, no loading
+  const [bills] = useState<Array<{
     id: string
     bill_name: string
     amount: number
@@ -135,40 +132,9 @@ export function RightSidebar() {
     description: string | null
     status: string
   }>>([])
-  const [loadingBills, setLoadingBills] = useState(true)
   const [showBillsModal, setShowBillsModal] = useState(false)
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<string | null>(null)
   const [payingBillId, setPayingBillId] = useState<string | null>(null)
-
-  // Fetch bills
-  useEffect(() => {
-    if (profile?.id) {
-      fetchBills()
-    }
-  }, [profile?.id])
-
-  const fetchBills = async () => {
-    try {
-      setLoadingBills(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('bills')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'overdue'])
-        .order('due_date', { ascending: true })
-
-      if (error) throw error
-
-      setBills(data || [])
-    } catch (error) {
-      console.error('Error fetching bills:', error)
-    } finally {
-      setLoadingBills(false)
-    }
-  }
 
   // Upcoming bills - Show 2 latest
   const upcomingBills = useMemo(() => {
@@ -191,8 +157,8 @@ export function RightSidebar() {
     })
   }, [bills])
 
-  // Saved recipients for P2P transfers
-  const [savedRecipients, setSavedRecipients] = useState<Array<{
+  // Saved recipients for P2P transfers - Static, no loading
+  const [savedRecipients] = useState<Array<{
     id: string
     recipient_email: string
     recipient_name: string | null
@@ -202,7 +168,6 @@ export function RightSidebar() {
     total_transactions: number
     total_amount: number
   }>>([])
-  const [loadingRecipients, setLoadingRecipients] = useState(true)
   const [showQuickTransferModal, setShowQuickTransferModal] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<{
     id: string
@@ -214,37 +179,9 @@ export function RightSidebar() {
   const [quickTransferAmount, setQuickTransferAmount] = useState('')
   const [quickTransferFromAccount, setQuickTransferFromAccount] = useState('')
   const [quickTransferProcessing, setQuickTransferProcessing] = useState(false)
+  
+  // Get accounts once, no loading state
   const { accounts } = useAccounts()
-
-  // Fetch saved recipients
-  useEffect(() => {
-    if (profile?.id) {
-      fetchSavedRecipients()
-    }
-  }, [profile?.id])
-
-  const fetchSavedRecipients = async () => {
-    try {
-      setLoadingRecipients(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('saved_recipients')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('last_transferred_at', { ascending: false })
-        .limit(10)
-
-      if (error) throw error
-
-      setSavedRecipients(data || [])
-    } catch (error) {
-      console.error('Error fetching saved recipients:', error)
-    } finally {
-      setLoadingRecipients(false)
-    }
-  }
 
   const handleQuickTransfer = async () => {
     if (!selectedRecipient || !quickTransferAmount || !quickTransferFromAccount) {
@@ -474,13 +411,13 @@ export function RightSidebar() {
       setSelectedRecipient(null)
       setQuickTransferAmount('')
       setQuickTransferFromAccount('')
-      await fetchSavedRecipients()
       
-      // Refresh notifications
+      // Refresh notifications only
       refreshNotifications()
     } catch (error: any) {
       console.error('Error processing quick transfer:', error)
-      alert(error.message || 'Failed to process transfer')
+      // Error will be handled by the form's error state
+      console.error('Transfer error:', error)
     } finally {
       setQuickTransferProcessing(false)
     }
@@ -508,7 +445,7 @@ export function RightSidebar() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-white/80">Credit Score</span>
               <span className="text-xl font-bold">
-                {profileLoading ? '...' : (creditScore > 0 ? creditScore : '--')}
+                {creditScore > 0 ? creditScore : '--'}
               </span>
             </div>
             <div className="w-full bg-white/20 rounded-full h-2">
@@ -520,7 +457,7 @@ export function RightSidebar() {
             <div className="flex items-center gap-2 text-xs text-white/80">
               <Info className="w-3 h-3" />
               <span>
-                {profileLoading ? 'Loading...' : (creditScore > 0 && creditRating ? creditRating.text : 'No data available yet')}
+                {creditScore > 0 && creditRating ? creditRating.text : 'No data available yet'}
               </span>
             </div>
           </div>
@@ -545,7 +482,7 @@ export function RightSidebar() {
               <p className="text-xs">Loading notifications...</p>
             </div>
           ) : notifications.length > 0 ? (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+            <div className="space-y-2">
               {notifications.map((notif) => {
               const Icon = notif.icon
               return (
@@ -612,12 +549,7 @@ export function RightSidebar() {
               </button>
             )}
           </div>
-          {loadingBills ? (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-              <Calendar className="w-8 h-8 mb-2 opacity-50 animate-pulse" />
-              <p className="text-xs">Loading bills...</p>
-            </div>
-          ) : upcomingBills.length > 0 ? (
+          {upcomingBills.length > 0 ? (
             <div className="space-y-2">
               {upcomingBills.map((bill) => (
               <div
@@ -668,12 +600,7 @@ export function RightSidebar() {
             <Zap className="w-4 h-4" />
             Quick Transfer
           </h3>
-          {loadingRecipients ? (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400 mb-3">
-              <User className="w-8 h-8 mb-2 opacity-50 animate-pulse" />
-              <p className="text-xs">Loading...</p>
-            </div>
-          ) : savedRecipients.length > 0 ? (
+          {savedRecipients.length > 0 ? (
             <div className="grid grid-cols-2 gap-2 mb-3">
               {savedRecipients.slice(0, 4).map((recipient) => (
                 <button
@@ -795,7 +722,7 @@ export function RightSidebar() {
             setSelectedBillForPayment(null)
           }}
           onPaymentSuccess={() => {
-            fetchBills()
+            // Only refresh notifications
             refreshNotifications()
           }}
         />

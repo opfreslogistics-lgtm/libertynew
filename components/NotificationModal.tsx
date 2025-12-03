@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CheckCircle, XCircle, AlertCircle, Info, X, Loader2 } from 'lucide-react'
 
 type NotificationType = 'success' | 'error' | 'warning' | 'info'
@@ -22,8 +23,15 @@ export default function NotificationModal({
   title,
   message,
   autoClose = true,
-  autoCloseDelay = 4000,
+  autoCloseDelay = 10000,
 }: NotificationModalProps) {
+  const [mounted, setMounted] = useState(false)
+
+  // Ensure component is mounted on client side
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Auto close after delay
   useEffect(() => {
     if (isOpen && autoClose) {
@@ -35,7 +43,19 @@ export default function NotificationModal({
     }
   }, [isOpen, autoClose, autoCloseDelay, onClose])
 
-  if (!isOpen) return null
+  // Use portal to render at document root for proper z-index
+  useEffect(() => {
+    if (isOpen && mounted) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen, mounted])
+
+  if (!isOpen || !mounted) return null
 
   const getIcon = () => {
     const iconClass = 'w-8 h-8'
@@ -90,22 +110,44 @@ export default function NotificationModal({
 
   const colors = getColors()
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 notification-backdrop"
+      onClick={onClose}
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0,
+        zIndex: 9999
+      }}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-300 notification-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ position: 'relative', zIndex: 10000 }}
+      >
         {/* Header */}
-        <div className={`bg-gradient-to-r ${colors.bg} p-6`}>
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 ${colors.iconBg} rounded-full flex items-center justify-center`}>
+        <div className={`bg-gradient-to-r ${colors.bg} p-6 relative`}>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-3 pr-8">
+            <div className={`w-12 h-12 ${colors.iconBg} rounded-full flex items-center justify-center shadow-lg`}>
               {getIcon()}
             </div>
-            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <h2 className="text-xl font-bold text-white drop-shadow-sm">{title}</h2>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-700 dark:text-gray-300 text-center leading-relaxed">
+          <p className="text-gray-700 dark:text-gray-300 text-center leading-relaxed text-base">
             {message}
           </p>
         </div>
@@ -114,7 +156,7 @@ export default function NotificationModal({
         <div className="px-6 pb-6">
           <button
             onClick={onClose}
-            className={`w-full px-6 py-3 ${colors.button} text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl`}
+            className={`w-full px-6 py-3 ${colors.button} text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]`}
           >
             OK
           </button>
@@ -122,5 +164,8 @@ export default function NotificationModal({
       </div>
     </div>
   )
+
+  // Render using portal to ensure it's at the root level
+  return createPortal(modalContent, document.body)
 }
 

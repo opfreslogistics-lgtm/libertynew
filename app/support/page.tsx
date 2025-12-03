@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useUserProfile } from '@/lib/hooks/useUserProfile'
 import NotificationModal from '@/components/NotificationModal'
+import UserChatWidget from '@/components/chat/UserChatWidget'
 import {
   Search,
   MessageSquare,
@@ -518,7 +519,13 @@ export default function SupportPage() {
               <p className="text-green-100">Chat with our support team now - Average response time: 2 minutes</p>
             </div>
           </div>
-          <button className="px-8 py-3 bg-white text-green-700 hover:bg-gray-100 font-bold rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-95">
+          <button 
+            onClick={() => {
+              // Dispatch custom event to open chat
+              window.dispatchEvent(new CustomEvent('openChat'))
+            }}
+            className="px-8 py-3 bg-white text-green-700 hover:bg-gray-100 font-bold rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-95"
+          >
             Start Live Chat
           </button>
         </div>
@@ -1047,6 +1054,9 @@ export default function SupportPage() {
         message={notification.message}
         onClose={() => setNotification({ ...notification, isOpen: false })}
       />
+
+      {/* Chat Widget */}
+      <UserChatWidget />
     </div>
   )
 }

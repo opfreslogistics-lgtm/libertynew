@@ -560,7 +560,7 @@ export default function AdminCardSpenderPage() {
       </div>
 
       {/* Cards Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
@@ -571,8 +571,74 @@ export default function AdminCardSpenderPage() {
             <p className="text-gray-500 dark:text-gray-400">No cards found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Card Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-base text-gray-900 dark:text-white mb-1 truncate">
+                        {card.user_name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">
+                        {card.user_email}
+                      </p>
+                      <p className="font-semibold text-sm text-gray-900 dark:text-white mb-1">
+                        {card.card_network.toUpperCase()} ••••{card.last4}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {card.cardholder_name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {card.account_type ? card.account_type.charAt(0).toUpperCase() + card.account_type.slice(1) : 'N/A'}
+                      </p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                        {formatCurrency(card.account_balance || 0)}
+                      </p>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold inline-block ${
+                        card.status === 'active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {card.status.charAt(0).toUpperCase() + card.status.slice(1)}
+                      </span>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setSelectedCardId(card.id)
+                          setShowActionModal(true)
+                        }}
+                        className="px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white rounded-lg text-xs font-semibold transition-all"
+                      >
+                        Action
+                      </button>
+                      <button
+                        onClick={() => handleBlockCard(card.id, card.status)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          card.status === 'active'
+                            ? 'bg-red-700 hover:bg-red-800 text-white'
+                            : 'bg-green-700 hover:bg-green-800 text-white'
+                        }`}
+                      >
+                        {card.status === 'active' ? <><Lock className="w-3 h-3 inline mr-1" />Block</> : <><Unlock className="w-3 h-3 inline mr-1" />Unblock</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">User</th>
@@ -645,8 +711,9 @@ export default function AdminCardSpenderPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

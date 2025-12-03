@@ -39,11 +39,7 @@ EMAIL_FROM=Liberty Bank <your-email@gmail.com>
 EMAIL_REPLY_TO=support@libertybank.com
 
 # ============================================
-# EMAIL CONFIGURATION - Option 2: Resend (Alternative)
-# ============================================
-# If using Resend instead of Nodemailer, uncomment these:
-# Get API key from: https://resend.com
-# RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Email configuration uses Nodemailer (see EMAIL_SERVICE above)
 # FROM_EMAIL=Liberty Bank <noreply@libertybank.com>
 # REPLY_TO_EMAIL=support@libertybank.com
 
@@ -155,7 +151,6 @@ The project uses **Supabase** as the backend:
 | `EMAIL_PASSWORD` | No* | Email password or app password |
 | `EMAIL_FROM` | No | Display name and email for sender |
 | `EMAIL_REPLY_TO` | No | Reply-to email address |
-| `RESEND_API_KEY` | No | Resend API key (alternative to Nodemailer) |
 | `NODE_ENV` | No | Environment mode (development/production) |
 
 *Required if using Nodemailer for email functionality

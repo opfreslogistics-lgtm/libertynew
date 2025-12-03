@@ -1,12 +1,13 @@
 /**
  * Email Notification Service
  * Handles sending email notifications for various banking actions
+ * Uses fetch to call /api/email/send route (same pattern as OTP)
  */
 
 import { supabase } from '@/lib/supabase'
 
-// Email service configuration
-const EMAIL_API_URL = '/api/email/send' // Next.js API route
+// Email API URL - always use relative URL (works in both client and server contexts)
+const EMAIL_API_URL = '/api/email/send'
 
 export interface EmailNotificationData {
   notificationType: string
@@ -29,27 +30,65 @@ export interface EmailTemplate {
  */
 export async function sendEmailNotification(data: EmailNotificationData): Promise<boolean> {
   try {
-    // Call Next.js API route to send email
+    console.log('📧 Sending email notification:', {
+      to: data.recipientEmail,
+      type: data.notificationType,
+      subject: data.subject,
+    })
+    
+    // Call Next.js API route to send email (same pattern as OTP)
     const response = await fetch(EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        notificationType: data.notificationType,
+        recipientEmail: data.recipientEmail,
+        recipientName: data.recipientName,
+        subject: data.subject,
+        metadata: data.metadata,
+      }),
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      console.error('Email sending failed:', error)
+      const errorText = await response.text()
+      let error
+      try {
+        error = JSON.parse(errorText)
+      } catch {
+        error = { error: errorText }
+      }
+      console.error('❌ Email sending failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error,
+        url: EMAIL_API_URL,
+      })
+      await logEmailNotification(data, `HTTP ${response.status}: ${JSON.stringify(error)}`)
       return false
     }
+
+    const result = await response.json()
+    
+    if (!result.success) {
+      console.error('❌ Email API returned error:', result)
+      await logEmailNotification(data, result.error || result.message || 'Unknown error')
+      return false
+    }
+
+    console.log('✅ Email sent successfully:', {
+      to: data.recipientEmail,
+      type: data.notificationType,
+      messageId: result.messageId,
+    })
 
     // Log email notification in database
     await logEmailNotification(data)
 
     return true
   } catch (error) {
-    console.error('Error sending email notification:', error)
+    console.error('❌ Error sending email notification:', error)
     // Still log the attempt
     await logEmailNotification(data, error instanceof Error ? error.message : 'Unknown error')
     return false
@@ -90,16 +129,44 @@ async function logEmailNotification(
  */
 export async function getAdminEmails(): Promise<Array<{ email: string; name: string }>> {
   try {
-    const { data, error } = await supabase.rpc('get_admin_emails')
+    console.log('📧 Fetching admin emails')
+    
+    // Primary method: Query user_profiles directly
+    const { data: adminProfiles, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, email, first_name, last_name')
+      .in('role', ['admin', 'superadmin'])
+      .eq('account_status', 'active')
 
-    if (error) {
-      console.error('Error fetching admin emails:', error)
-      return []
+    if (!profileError && adminProfiles && adminProfiles.length > 0) {
+      const admins = adminProfiles
+        .filter(profile => profile.email) // Only include admins with emails
+        .map(profile => ({
+          email: profile.email,
+          name: profile.first_name && profile.last_name
+            ? `${profile.first_name} ${profile.last_name}`
+            : profile.first_name || profile.last_name || 'Admin',
+        }))
+      
+      console.log('📧 Admin emails (direct query):', admins.length)
+      return admins
     }
 
-    return data || []
+    // Fallback: Try RPC function
+    if (profileError) {
+      console.warn('⚠️ Direct query failed, trying RPC function:', profileError)
+      const { data, error } = await supabase.rpc('get_admin_emails')
+
+      if (!error && data && data.length > 0) {
+        console.log('📧 Admin emails (RPC):', data.length)
+        return data
+      }
+    }
+
+    console.warn('⚠️ No admin emails found')
+    return []
   } catch (error) {
-    console.error('Error fetching admin emails:', error)
+    console.error('❌ Error fetching admin emails:', error)
     return []
   }
 }
@@ -111,18 +178,42 @@ export async function getUserEmailInfo(
   userId: string
 ): Promise<{ email: string; name: string } | null> {
   try {
-    const { data, error } = await supabase.rpc('get_user_email_info', {
-      user_uuid: userId,
-    })
+    console.log('📧 Fetching user email info for userId:', userId)
+    
+    // Primary method: Query user_profiles directly (same as OTP approach - get email from database)
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, email, first_name, last_name')
+      .eq('id', userId)
+      .single()
+    
+    if (!profileError && profileData && profileData.email) {
+      const email = profileData.email
+      const name = profileData.first_name && profileData.last_name
+        ? `${profileData.first_name} ${profileData.last_name}`
+        : profileData.first_name || profileData.last_name || 'User'
 
-    if (error || !data || data.length === 0) {
-      console.error('Error fetching user email info:', error)
-      return null
+      console.log('📧 User email info (direct query):', { email, name })
+      return { email, name }
     }
 
-    return data[0]
+    // Fallback: Try RPC function
+    if (profileError) {
+      console.warn('⚠️ Direct query failed, trying RPC function:', profileError)
+      const { data, error } = await supabase.rpc('get_user_email_info', {
+        user_uuid: userId,
+      })
+
+      if (!error && data && data.length > 0 && data[0].email) {
+        console.log('📧 User email info (RPC):', data[0])
+        return data[0]
+      }
+    }
+
+    console.error('❌ No email found for user:', userId, { profileError, profileData })
+    return null
   } catch (error) {
-    console.error('Error fetching user email info:', error)
+    console.error('❌ Error fetching user email info:', error)
     return null
   }
 }
@@ -136,20 +227,37 @@ export async function notifyUser(
   subject: string,
   metadata?: Record<string, any>
 ): Promise<boolean> {
-  const userInfo = await getUserEmailInfo(userId)
-  if (!userInfo) {
-    console.error('User email info not found for userId:', userId)
+  try {
+    console.log('📧 notifyUser called:', { userId, notificationType, subject })
+    
+    const userInfo = await getUserEmailInfo(userId)
+    if (!userInfo) {
+      console.error('❌ User email info not found for userId:', userId)
+      return false
+    }
+
+    if (!userInfo.email) {
+      console.error('❌ User email is empty for userId:', userId)
+      return false
+    }
+
+    console.log('📧 Sending email to user:', { email: userInfo.email, name: userInfo.name })
+
+    const result = await sendEmailNotification({
+      notificationType,
+      recipientEmail: userInfo.email,
+      recipientName: userInfo.name,
+      subject,
+      metadata,
+      userId,
+    })
+
+    console.log('📧 notifyUser result:', { userId, success: result })
+    return result
+  } catch (error) {
+    console.error('❌ Error in notifyUser:', error)
     return false
   }
-
-  return sendEmailNotification({
-    notificationType,
-    recipientEmail: userInfo.email,
-    recipientName: userInfo.name,
-    subject,
-    metadata,
-    userId,
-  })
 }
 
 /**

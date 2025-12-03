@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useStore } from '@/lib/store'
 import { useAccounts } from '@/lib/hooks/useAccounts'
 import { formatCurrency, maskAccountNumber } from '@/lib/utils'
 import { getUserTransactionCodes, RequiredCode } from '@/lib/utils/transactionCodes'
-import TransactionCodeValidator from '@/components/TransactionCodeValidator'
 import NotificationModal from '@/components/NotificationModal'
-import TransferSuccessModal from '@/components/TransferSuccessModal'
+import TransferProgressModal from '@/components/TransferProgressModal'
 import { supabase } from '@/lib/supabase'
 import { sendTransferNotification } from '@/lib/utils/emailNotifications'
 import Link from 'next/link'
@@ -38,13 +36,11 @@ import {
   Loader2,
 } from 'lucide-react'
 
-type TransferType = 'internal' | 'external' | 'p2p'
+type TransferType = 'internal' | 'external' | 'p2p' | 'wire'
 type RecurringFrequency = 'once' | 'daily' | 'weekly' | 'monthly'
 
 export default function TransferPage() {
-  const { accounts: storeAccounts } = useStore()
-  const { accounts: dbAccounts, loading: accountsLoading, refreshAccounts } = useAccounts()
-  const accounts = dbAccounts.length > 0 ? dbAccounts : storeAccounts
+  const { accounts, refreshAccounts } = useAccounts() // Only use real accounts from database
   const [transferType, setTransferType] = useState<TransferType>('internal')
   const [fromAccount, setFromAccount] = useState(accounts[0]?.id || '')
   const [amount, setAmount] = useState('')
@@ -59,13 +55,10 @@ export default function TransferPage() {
   const [scheduleDate, setScheduleDate] = useState('')
   const [recurring, setRecurring] = useState<RecurringFrequency>('once')
   const [memo, setMemo] = useState('')
-  const [showConfirmation, setShowConfirmation] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [transferSuccessDetails, setTransferSuccessDetails] = useState<any>(null)
-  const [showCodeValidator, setShowCodeValidator] = useState(false)
   const [requiredCodes, setRequiredCodes] = useState<RequiredCode[]>([])
   const [pendingTransfer, setPendingTransfer] = useState(false)
-  const [isProcessingTransfer, setIsProcessingTransfer] = useState(false)
   const [isProcessingTransaction, setIsProcessingTransaction] = useState(false)
 
   // Notification modal state
@@ -178,39 +171,57 @@ export default function TransferPage() {
       return
     }
 
-    // Show loading animation for 5-7 seconds
-    setIsProcessingTransfer(true)
+    // Start processing animation first
+    setIsProcessingTransaction(true)
     
-    // Wait 5-7 seconds (randomized between 5-7)
-    const delay = 5000 + Math.random() * 2000 // 5000-7000ms
-    await new Promise(resolve => setTimeout(resolve, delay))
+    // Show processing for exactly 10 seconds before checking codes
+    const initialProcessingTime = 10000 // 10 seconds
+    await new Promise(resolve => setTimeout(resolve, initialProcessingTime))
 
     // Check if user has any enabled codes
     const codes = await getUserTransactionCodes()
     setRequiredCodes(codes)
 
-    setIsProcessingTransfer(false)
-
     if (codes.length > 0) {
-      // Show code validator
+      // Show code form in the processing modal
       setPendingTransfer(true)
-      setShowCodeValidator(true)
+      setRequiredCodes(codes)
+      // Processing modal will show code form instead
     } else {
-      // No codes required, proceed directly
-      setShowConfirmation(true)
+      // No codes required, execute transfer immediately
+      await executeTransfer()
     }
   }
 
-  const handleCodeValidationSuccess = () => {
-    setShowCodeValidator(false)
+  const handleCodeSubmit = async (code: string, codeType: string): Promise<boolean> => {
+    // If code is empty, it means all codes have been validated (called from useEffect in modal)
+    if (!code && codeType) {
+      await handleCodeValidationSuccess()
+      return true
+    }
+    
+    const codeToValidate = requiredCodes.find(c => c.type === codeType && c.enabled)
+    if (!codeToValidate) return false
+    
+    // Validate the code
+    if (code.trim() !== codeToValidate.value) {
+      return false
+    }
+    
+    return true
+  }
+
+  const handleCodeValidationSuccess = async () => {
     setPendingTransfer(false)
-    // After codes validated, show confirmation
-    setShowConfirmation(true)
+    // All codes validated - continue with final processing for 10 seconds
+    await new Promise(resolve => setTimeout(resolve, 10000))
+    // Execute transfer - it will handle transitioning to success
+    await executeTransfer()
   }
 
   const handleCodeValidationCancel = () => {
-    setShowCodeValidator(false)
     setPendingTransfer(false)
+    setIsProcessingTransaction(false)
   }
 
   const executeTransfer = async () => {
@@ -228,7 +239,7 @@ export default function TransferPage() {
         title: 'Insufficient Balance',
         message: 'You do not have enough funds in the source account to complete this transfer.',
       })
-      setShowConfirmation(false)
+        setIsProcessingTransaction(false)
       return
     }
 
@@ -263,7 +274,7 @@ export default function TransferPage() {
           title: 'Insufficient Balance',
           message: 'You do not have enough funds in the source account to complete this transfer.',
         })
-        setShowConfirmation(false)
+        setIsProcessingTransaction(false)
         return
       }
       
@@ -503,18 +514,20 @@ export default function TransferPage() {
                     console.log('[P2P Transfer] Notification created for recipient')
                   }
                   
-                  // Send email notification to recipient (non-blocking)
-                  sendTransferNotification(
+                  // Send email notification to recipient (non-blocking but properly awaited)
+                  try {
+                    await sendTransferNotification(
                     recipientUser.id,
                     'p2p',
                     transferAmount,
                     fromAccountData ? getAccountDisplayName(fromAccountData) : 'a user',
                     getAccountDisplayName(recipientAccount),
                     referenceNumber
-                  ).catch(error => {
+                    )
+                  } catch (error) {
                     console.error('[P2P Transfer] Error sending recipient email notification:', error)
                     // Don't fail - email is not critical
-                  })
+                  }
                   
                   // Save to saved_recipients
                   const { error: saveRecipientError } = await supabase.rpc('update_saved_recipient', {
@@ -592,8 +605,9 @@ export default function TransferPage() {
           read: false,
         }])
 
-      // Send email notifications (non-blocking)
-      sendTransferNotification(
+      // Send email notifications (non-blocking but properly awaited)
+      try {
+        await sendTransferNotification(
         user.id,
         transferType,
         transferAmount,
@@ -601,10 +615,11 @@ export default function TransferPage() {
         transferType === 'internal' && toAccountData ? getAccountDisplayName(toAccountData) : undefined,
         referenceNumber,
         memo || undefined
-      ).catch(error => {
+        )
+      } catch (error) {
         console.error('Error sending transfer email notification:', error)
         // Don't fail the transfer if email fails
-      })
+      }
 
       // Prepare success modal details
       const successDetails = {
@@ -630,13 +645,6 @@ export default function TransferPage() {
       }
 
       setTransferSuccessDetails(successDetails)
-      setShowConfirmation(false)
-      setIsProcessingTransaction(false)
-      
-      // Small delay for smooth animation transition
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      setShowSuccessModal(true)
 
       // Refresh accounts - force a complete refresh
       await refreshAccounts()
@@ -646,6 +654,13 @@ export default function TransferPage() {
       
       // Refresh again to ensure we get the latest data
       await refreshAccounts()
+      
+      // After success details are set, the modal will show success state
+      // Keep isProcessingTransaction true briefly to allow smooth transition
+      // The modal visibility is controlled by isComplete prop
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Now we can set processing to false - modal will stay visible because isComplete is true
+      setIsProcessingTransaction(false)
 
       // Reset form after showing success
       setAmount('')
@@ -660,13 +675,13 @@ export default function TransferPage() {
     } catch (error: any) {
       console.error('Error executing transfer:', error)
       setIsProcessingTransaction(false)
+      setTransferSuccessDetails(null)
       setNotification({
         isOpen: true,
         type: 'error',
         title: 'Transfer Failed',
         message: error.message || 'Failed to process transfer. Please try again.',
       })
-      setShowConfirmation(false)
     }
   }
 
@@ -685,18 +700,6 @@ export default function TransferPage() {
     }
   }
 
-  const confirmTransfer = async () => {
-    // Show processing animation for 10 seconds
-    setIsProcessingTransaction(true)
-    setShowConfirmation(false)
-    
-    // Wait 10 seconds with processing animation
-    await new Promise(resolve => setTimeout(resolve, 10000))
-    
-    setIsProcessingTransaction(false)
-    // Then execute transfer
-    await executeTransfer()
-  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -1140,111 +1143,8 @@ export default function TransferPage() {
         </div>
       </div>
 
-      {/* Processing Transaction Animation */}
-      {isProcessingTransaction && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-            <div className="flex flex-col items-center justify-center">
-              <Loader2 className="w-16 h-16 text-green-600 dark:text-green-400 animate-spin mb-4" />
-              <p className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Processing Transaction
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                Please wait while we process your transfer...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Confirmation Modal */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">${amount}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <span className="text-sm text-gray-600 dark:text-gray-400">From</span>
-                <div className="text-right">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white block">
-                    {selectedAccount ? getAccountDisplayName(selectedAccount) : 'Account'}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {selectedAccount ? getAccountNumberDisplay(selectedAccount) : ''}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <span className="text-sm text-gray-600 dark:text-gray-400">To</span>
-                <div className="text-right">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white block">
-                    {transferType === 'internal' 
-                      ? (() => {
-                          const toAcc = accounts.find(acc => acc.id === toAccount)
-                          return toAcc ? getAccountDisplayName(toAcc) : 'Account'
-                        })()
-                      : transferType === 'p2p' 
-                      ? recipientEmail || 'Recipient'
-                      : 'External Account'}
-                  </span>
-                  {transferType === 'internal' && (() => {
-                    const toAcc = accounts.find(acc => acc.id === toAccount)
-                    return toAcc ? (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {getAccountNumberDisplay(toAcc)}
-                      </span>
-                    ) : null
-                  })()}
-                </div>
-              </div>
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmation(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl font-semibold transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmTransfer}
-                className="flex-1 px-4 py-3 bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Processing Transfer Loading Overlay */}
-      {isProcessingTransfer && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-            <div className="flex flex-col items-center justify-center">
-              <Loader2 className="w-16 h-16 text-green-600 dark:text-green-400 animate-spin mb-4" />
-              <p className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Processing Transfer
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                Please wait while we process your transfer request...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Transaction Code Validator */}
-      <TransactionCodeValidator
-        isOpen={showCodeValidator}
-        onClose={handleCodeValidationCancel}
-        onSuccess={handleCodeValidationSuccess}
-        requiredCodes={requiredCodes}
-      />
 
       {/* Notification Modal */}
       <NotificationModal
@@ -1255,18 +1155,24 @@ export default function TransferPage() {
         message={notification.message}
       />
 
-      {/* Transfer Success Modal */}
-      {transferSuccessDetails && (
-        <TransferSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => {
-            setShowSuccessModal(false)
-            setTransferSuccessDetails(null)
-          }}
-          transferType={transferType}
-          transferDetails={transferSuccessDetails}
-        />
-      )}
+      {/* Transfer Progress Modal - Handles processing, code form, and success states */}
+      <TransferProgressModal
+        isProcessing={isProcessingTransaction}
+        isComplete={!!transferSuccessDetails}
+        transferType={transferType}
+        transferDetails={transferSuccessDetails || undefined}
+        requiredCodes={requiredCodes}
+        showCodeForm={pendingTransfer && requiredCodes.length > 0}
+        onCodeSubmit={handleCodeSubmit}
+        onCodeCancel={handleCodeValidationCancel}
+        onClose={() => {
+          setIsProcessingTransaction(false)
+          setShowSuccessModal(false)
+          setTransferSuccessDetails(null)
+          setPendingTransfer(false)
+          setRequiredCodes([])
+        }}
+      />
     </div>
   )
 }

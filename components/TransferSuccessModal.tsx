@@ -85,234 +85,234 @@ export default function TransferSuccessModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-7 h-7 text-white" />
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-300">
+        {/* Header with Centered Success Icon */}
+        <div className="px-6 pt-8 pb-6 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">{getTransferTypeLabel()} Successful!</h2>
-              <p className="text-sm text-white/80">Transaction completed successfully</p>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{getTransferTypeLabel()} Successful!</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Transaction completed successfully</p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Amount */}
-          <div className="text-center py-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-              {transferType === 'wire' && transferDetails.fees ? 'Total Amount (incl. fees)' : 'Transfer Amount'}
-            </p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(transferDetails.totalAmount || transferDetails.amount)}
-            </p>
-            {transferType === 'wire' && transferDetails.fees && (
-              <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Transfer:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transferDetails.amount)}</span>
+        <div className="p-6">
+          {/* Amount and Key Details - Horizontal Layout */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            {/* Amount */}
+            <div className="text-center py-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                {transferType === 'wire' && transferDetails.fees ? 'Total Amount' : 'Transfer Amount'}
+              </p>
+              <p className="text-3xl font-bold text-green-700 dark:text-green-400">
+                {formatCurrency(transferDetails.totalAmount || transferDetails.amount)}
+              </p>
+              {transferType === 'wire' && transferDetails.fees && (
+                <div className="mt-2 pt-2 border-t border-green-300 dark:border-green-700 text-xs">
+                  <div className="flex justify-between px-2">
+                    <span className="text-gray-600 dark:text-gray-400">Amount:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transferDetails.amount)}</span>
+                  </div>
+                  <div className="flex justify-between px-2 mt-1">
+                    <span className="text-gray-600 dark:text-gray-400">Fees:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transferDetails.fees)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Fees:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transferDetails.fees)}</span>
+              )}
+            </div>
+
+            {/* Reference Number */}
+            <div className="flex flex-col justify-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">Reference</p>
+                    <p className="font-mono font-bold text-blue-900 dark:text-blue-300 text-sm truncate">
+                      {transferDetails.referenceNumber}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => copyToClipboard(transferDetails.referenceNumber)}
+                  className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex-shrink-0"
+                  title="Copy reference number"
+                >
+                  <Copy className={`w-4 h-4 ${copied ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Transfer Details */}
-          <div className="space-y-3">
-            <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <Wallet className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">From Account</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.fromAccount.name}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {transferDetails.fromAccount.number}
-                  </p>
+          {/* Transfer Details - Grid Layout */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* From Account */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Wallet className="w-4 h-4 text-green-700 dark:text-green-400" />
                 </div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">From Account</p>
               </div>
+              <p className="font-bold text-gray-900 dark:text-white text-sm mb-0.5">{transferDetails.fromAccount.name}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{transferDetails.fromAccount.number}</p>
             </div>
 
             {/* To Account/Recipient */}
             {transferType === 'internal' && transferDetails.toAccount && (
-              <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Wallet className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">To Account</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.toAccount.name}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {transferDetails.toAccount.number}
-                    </p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Wallet className="w-4 h-4 text-blue-700 dark:text-blue-400" />
                   </div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">To Account</p>
                 </div>
+                <p className="font-bold text-gray-900 dark:text-white text-sm mb-0.5">{transferDetails.toAccount.name}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{transferDetails.toAccount.number}</p>
               </div>
             )}
 
             {transferType === 'p2p' && (
-              <div className="space-y-2">
+              <>
                 {transferDetails.recipientEmail && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Recipient Email</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.recipientEmail}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recipient Email</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{transferDetails.recipientEmail}</p>
                   </div>
                 )}
                 {transferDetails.recipientPhone && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Recipient Phone</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.recipientPhone}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Phone className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recipient Phone</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{transferDetails.recipientPhone}</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {(transferType === 'external' || transferType === 'wire') && (
-              <div className="space-y-2">
+              <>
                 {transferType === 'wire' && transferDetails.beneficiaryName && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Beneficiary Name</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.beneficiaryName}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-indigo-700 dark:text-indigo-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Beneficiary</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{transferDetails.beneficiaryName}</p>
                   </div>
                 )}
                 {transferDetails.bankName && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Bank Name</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.bankName}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-4 h-4 text-orange-700 dark:text-orange-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Bank Name</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{transferDetails.bankName}</p>
                   </div>
                 )}
                 {transferDetails.accountNumber && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Wallet className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Account Number</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {maskAccountNumber(transferDetails.accountNumber)}
-                        </p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Wallet className="w-4 h-4 text-teal-700 dark:text-teal-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Account Number</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{maskAccountNumber(transferDetails.accountNumber)}</p>
                   </div>
                 )}
                 {transferDetails.routingNumber && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Routing Number</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {maskAccountNumber(transferDetails.routingNumber)}
-                        </p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-4 h-4 text-cyan-700 dark:text-cyan-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Routing Number</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{maskAccountNumber(transferDetails.routingNumber)}</p>
                   </div>
                 )}
                 {transferType === 'wire' && transferDetails.swiftCode && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Globe className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">SWIFT Code</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.swiftCode}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Globe className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">SWIFT Code</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{transferDetails.swiftCode}</p>
                   </div>
                 )}
                 {transferType === 'wire' && transferDetails.currency && (
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Currency</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{transferDetails.currency}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                       </div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Currency</p>
                     </div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{transferDetails.currency}</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
-            {/* Reference Number */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">Reference Number</p>
-                  <p className="font-mono font-semibold text-blue-900 dark:text-blue-300">
-                    {transferDetails.referenceNumber}
-                  </p>
+            {/* Date and Memo Row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Date</p>
                 </div>
+                <p className="font-bold text-gray-900 dark:text-white text-xs">
+                  {new Date(transferDetails.date).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
               </div>
-              <button
-                onClick={() => copyToClipboard(transferDetails.referenceNumber)}
-                className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                title="Copy reference number"
-              >
-                <Copy className={`w-4 h-4 ${copied ? 'text-green-600' : 'text-blue-600 dark:text-blue-400'}`} />
-              </button>
-            </div>
-
-            {/* Date */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Transaction Date</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
-                    {new Date(transferDetails.date).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+              {transferDetails.memo && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Memo</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white line-clamp-2">{transferDetails.memo}</p>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Memo */}
-            {transferDetails.memo && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Memo</p>
-                <p className="text-sm text-gray-900 dark:text-white">{transferDetails.memo}</p>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-5 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
+            className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.99]"
           >
-            Close
+            Done
           </button>
         </div>
       </div>

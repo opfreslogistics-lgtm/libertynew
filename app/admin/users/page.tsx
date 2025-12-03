@@ -43,6 +43,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import clsx from 'clsx'
+import NotificationModal from '@/components/NotificationModal'
 
 type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending'
 type UserTier = 'basic' | 'kyc_verified' | 'premium' | 'business'
@@ -91,6 +92,12 @@ export default function AdminUsersPage() {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null)
   const [profilePicPreview, setProfilePicPreview] = useState<string | null>(null)
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false)
+  const [notification, setNotification] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  })
 
   // Multi-step form state - matching signup form structure
   const [addUserStep, setAddUserStep] = useState(1)
@@ -315,7 +322,12 @@ export default function AdminUsersPage() {
   // Role Management Functions (for superadmin and admin)
   const handleAssignAdmin = async (userId: string) => {
     if (currentUserRole !== 'superadmin' && currentUserRole !== 'admin') {
-      alert('Only admin or superadmin can assign admin roles')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Permission Denied',
+        message: 'Only admin or superadmin can assign admin roles.'
+      })
       return
     }
 
@@ -357,11 +369,21 @@ export default function AdminUsersPage() {
         adminEmail
       )
 
-      alert('Admin role assigned successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Role Assigned',
+        message: 'Admin role assigned successfully!'
+      })
       fetchUsers()
     } catch (error: any) {
       console.error('Error assigning admin role:', error)
-      alert(`Failed to assign admin role: ${error.message}`)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Assignment Failed',
+        message: `Failed to assign admin role: ${error.message}`
+      })
     }
   }
 
@@ -387,17 +409,32 @@ export default function AdminUsersPage() {
         throw new Error(data.error || 'Failed to update 2FA setting')
       }
 
-      alert(`Two-factor authentication ${enabled ? (force ? 'force enabled' : 'enabled') : (force ? 'force disabled' : 'disabled')} successfully for this user.`)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: '2FA Updated',
+        message: `Two-factor authentication ${enabled ? (force ? 'force enabled' : 'enabled') : (force ? 'force disabled' : 'disabled')} successfully for this user.`
+      })
       fetchUsers()
     } catch (error: any) {
       console.error('Error toggling 2FA:', error)
-      alert(`Failed to ${enabled ? 'enable' : 'disable'} 2FA: ${error.message}`)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Update Failed',
+        message: `Failed to ${enabled ? 'enable' : 'disable'} 2FA: ${error.message}`
+      })
     }
   }
 
   const handleRevokeAdmin = async (userId: string) => {
     if (currentUserRole !== 'superadmin' && currentUserRole !== 'admin') {
-      alert('Only admin or superadmin can revoke admin roles')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Permission Denied',
+        message: 'Only admin or superadmin can revoke admin roles.'
+      })
       return
     }
 
@@ -405,13 +442,23 @@ export default function AdminUsersPage() {
     // Only superadmin can revoke superadmin role, and prevent self-revocation
     if (user?.role === 'superadmin') {
       if (currentUserRole !== 'superadmin') {
-        alert('Cannot revoke superadmin role. Only superadmin can manage superadmin roles.')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Permission Denied',
+          message: 'Cannot revoke superadmin role. Only superadmin can manage superadmin roles.'
+        })
         return
       }
       // Prevent superadmin from revoking their own role
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       if (currentUser?.id === userId) {
-        alert('Cannot revoke your own superadmin role')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Action Not Allowed',
+          message: 'Cannot revoke your own superadmin role.'
+        })
         return
       }
     }
@@ -453,11 +500,21 @@ export default function AdminUsersPage() {
         adminEmail
       )
 
-      alert('Admin access revoked successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Access Revoked',
+        message: 'Admin access revoked successfully!'
+      })
       fetchUsers()
     } catch (error: any) {
       console.error('Error revoking admin role:', error)
-      alert(`Failed to revoke admin role: ${error.message}`)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Revocation Failed',
+        message: `Failed to revoke admin role: ${error.message}`
+      })
     }
   }
 
@@ -571,7 +628,12 @@ export default function AdminUsersPage() {
       setUserAccounts(formattedAccounts)
     } catch (error) {
       console.error('Error fetching user accounts:', error)
-      alert('Failed to fetch user accounts')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Fetch Failed',
+        message: 'Failed to fetch user accounts. Please try again.'
+      })
     } finally {
       setLoadingAccounts(false)
     }
@@ -579,13 +641,23 @@ export default function AdminUsersPage() {
 
   const handleFundSubmit = async () => {
     if (!fundAmount || !selectedAccountId) {
-      alert('Please select an account and enter an amount')
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please select an account and enter an amount.'
+      })
       return
     }
 
     const amount = parseFloat(fundAmount)
     if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount greater than 0')
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Invalid Amount',
+        message: 'Please enter a valid amount greater than 0.'
+      })
       return
     }
 
@@ -669,27 +741,42 @@ export default function AdminUsersPage() {
         ? 'Fixed Deposit' 
         : selectedAccount.account_type.charAt(0).toUpperCase() + selectedAccount.account_type.slice(1)
       
-      const { error: notificationError } = await supabase
+      try {
+        const { data: notificationData, error: notificationError } = await supabase
         .from('notifications')
         .insert([
           {
             user_id: selectedUserData?.id,
             type: 'transaction',
             title: 'Account Funded',
-            message: `Your ${accountTypeLabel} account has been funded with ${formatCurrency(amount)} via ${transactionType}.`,
+              message: `Your ${accountTypeLabel} account has been funded with ${formatCurrency(amount)} via ${transactionType}. Reference: ${referenceNumber}`,
             data: {
               transaction_id: transactionData?.id,
               account_id: selectedAccountId,
               amount: amount,
               funding_method: fundingMethod,
               account_type: selectedAccount.account_type,
+                reference_number: referenceNumber,
             },
             read: false,
           },
         ])
+          .select()
+          .single()
 
       if (notificationError) {
-        console.error('Error creating notification:', notificationError)
+          console.error('[Admin Funding] Error creating notification:', notificationError)
+          console.error('[Admin Funding] Notification error details:', {
+            code: notificationError.code,
+            message: notificationError.message,
+            details: notificationError.details,
+            hint: notificationError.hint,
+          })
+        } else {
+          console.log('[Admin Funding] Notification created successfully:', notificationData)
+        }
+      } catch (notifErr: any) {
+        console.error('[Admin Funding] Exception creating notification:', notifErr)
         // Don't fail the funding if notification creation fails, just log it
       }
 
@@ -723,7 +810,12 @@ export default function AdminUsersPage() {
       // Refresh all users list to update balances in the table
       await fetchUsers()
 
-      alert(`Successfully funded ${formatCurrency(amount)} to ${selectedUserData?.name}'s ${selectedAccount.account_type} account via ${transactionType}. Reference: ${referenceNumber}`)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Account Funded',
+        message: `Successfully funded ${formatCurrency(amount)} to ${selectedUserData?.name}'s ${selectedAccount.account_type} account via ${transactionType}. Reference: ${referenceNumber}`
+      })
       
       setShowUserModal(false)
       setFundAmount('')
@@ -732,7 +824,12 @@ export default function AdminUsersPage() {
       setFundNote('')
     } catch (error: any) {
       console.error('Error funding account:', error)
-      alert(error.message || 'Failed to fund account. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Funding Failed',
+        message: error.message || 'Failed to fund account. Please try again.'
+      })
     }
   }
 
@@ -764,7 +861,12 @@ export default function AdminUsersPage() {
           .eq('id', selectedUserData.id)
       }
 
-      alert(`Account ${isFrozen ? 'unfrozen' : 'frozen'} successfully for ${selectedUserData.name}`)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Account Status Updated',
+        message: `Account ${isFrozen ? 'unfrozen' : 'frozen'} successfully for ${selectedUserData.name}`
+      })
       
       // Refresh users list
       await fetchUsers()
@@ -772,7 +874,12 @@ export default function AdminUsersPage() {
       setFreezeReasonInput('')
     } catch (error: any) {
       console.error('Error freezing account:', error)
-      alert(error.message || 'Failed to freeze/unfreeze account. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Update Failed',
+        message: error.message || 'Failed to freeze/unfreeze account. Please try again.'
+      })
     }
   }
 
@@ -782,14 +889,24 @@ export default function AdminUsersPage() {
 
     // Prevent deleting superadmin
     if (user.role === 'superadmin') {
-      alert('Cannot delete superadmin account')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Action Not Allowed',
+        message: 'Cannot delete superadmin account.'
+      })
       return
     }
 
     // Prevent deleting own account
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (currentUser?.id === userId) {
-      alert('Cannot delete your own account')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Action Not Allowed',
+        message: 'Cannot delete your own account.'
+      })
       return
     }
 
@@ -802,7 +919,12 @@ export default function AdminUsersPage() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session) {
-        alert('You must be logged in to delete users')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Authentication Required',
+          message: 'You must be logged in to delete users.'
+        })
         return
       }
 
@@ -821,14 +943,24 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to delete user')
       }
 
-      alert(`Account for ${user.name} has been permanently deleted.`)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Account Deleted',
+        message: `Account for ${user.name} has been permanently deleted.`
+      })
       
       // Refresh users list
       await fetchUsers()
       setShowUserModal(false)
     } catch (error: any) {
       console.error('Error deleting account:', error)
-      alert(error.message || 'Failed to delete account. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Deletion Failed',
+        message: error.message || 'Failed to delete account. Please try again.'
+      })
     }
   }
 
@@ -864,12 +996,22 @@ export default function AdminUsersPage() {
 
       if (updateError) throw updateError
 
-      alert(`User information updated successfully for ${selectedUserData.name}`)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'User Updated',
+        message: `User information updated successfully for ${selectedUserData.name}`
+      })
       await fetchUsers()
       setShowUserModal(false)
     } catch (error: any) {
       console.error('Error updating user:', error)
-      alert(`Failed to update user: ${error.message}`)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Update Failed',
+        message: `Failed to update user: ${error.message}`
+      })
     }
   }
 
@@ -1034,25 +1176,45 @@ export default function AdminUsersPage() {
 
       // Validation
       if (addUserForm.password !== addUserForm.confirmPassword) {
-        alert('Passwords do not match')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Password Mismatch',
+          message: 'Passwords do not match. Please try again.'
+        })
         setAddUserLoading(false)
         return
       }
 
       if (addUserForm.password.length < 8) {
-        alert('Password must be at least 8 characters')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Invalid Password',
+          message: 'Password must be at least 8 characters long.'
+        })
         setAddUserLoading(false)
         return
       }
 
       if (addUserForm.createAccounts && addUserForm.accountTypes.length === 0) {
-        alert('Please select at least one account type or disable account creation')
+        setNotification({
+          isOpen: true,
+          type: 'warning',
+          title: 'Account Selection Required',
+          message: 'Please select at least one account type or disable account creation.'
+        })
         setAddUserLoading(false)
         return
       }
 
       if (addUserForm.createAccounts && addUserForm.accountTypes.length > 3) {
-        alert('You can select a maximum of 3 account types')
+                                      setNotification({
+                                        isOpen: true,
+                                        type: 'warning',
+                                        title: 'Too Many Accounts',
+                                        message: 'You can select a maximum of 3 account types.'
+                                      })
         setAddUserLoading(false)
         return
       }
@@ -1061,7 +1223,12 @@ export default function AdminUsersPage() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session) {
-        alert('You must be logged in to create users')
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Authentication Required',
+          message: 'You must be logged in to create users.'
+        })
         setAddUserLoading(false)
         return
       }
@@ -1143,7 +1310,12 @@ export default function AdminUsersPage() {
 
           if (uploadError) {
             console.error('Error uploading profile picture:', uploadError)
-            alert('Warning: User created successfully, but profile picture upload failed.')
+            setNotification({
+              isOpen: true,
+              type: 'warning',
+              title: 'Partial Success',
+              message: 'User created successfully, but profile picture upload failed.'
+            })
           } else {
             // Get public URL and update profile
             const { data: { publicUrl } } = supabase.storage
@@ -1158,7 +1330,12 @@ export default function AdminUsersPage() {
         } catch (error: any) {
           console.error('Error uploading profile picture:', error)
           // Don't fail the user creation if image upload fails
-          alert('Warning: User created successfully, but profile picture upload failed.')
+          setNotification({
+            isOpen: true,
+            type: 'warning',
+            title: 'Partial Success',
+            message: 'User created successfully, but profile picture upload failed.'
+          })
         } finally {
           setUploadingProfilePic(false)
         }
@@ -1197,7 +1374,12 @@ export default function AdminUsersPage() {
       setProfilePicPreview(null)
     } catch (error: any) {
       console.error('Error creating user:', error)
-      alert(error.message || 'Failed to create user. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Creation Failed',
+        message: error.message || 'Failed to create user. Please try again.'
+      })
     } finally {
       setAddUserLoading(false)
       setUploadingProfilePic(false)
@@ -1205,26 +1387,26 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="max-w-[1600px] mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             User Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             Manage all user accounts and permissions
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-semibold"
+            className="px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm sm:text-base"
           >
             <Filter className="w-4 h-4" />
             Filters
           </button>
-          <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-semibold">
+          <button className="px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm sm:text-base">
             <Download className="w-4 h-4" />
             Export
           </button>
@@ -1232,21 +1414,21 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
               <User className="w-5 h-5 text-blue-700 dark:text-blue-400" />
             </div>
             <TrendingUp className="w-5 h-5 text-green-600" />
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
             {stats.totalUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Users</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-green-700 dark:text-green-400" />
@@ -1255,13 +1437,13 @@ export default function AdminUsersPage() {
               Active
             </span>
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
             {stats.activeUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Active Users</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Active Users</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
               <Lock className="w-5 h-5 text-red-700 dark:text-red-400" />
@@ -1270,13 +1452,13 @@ export default function AdminUsersPage() {
               Suspended
             </span>
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
             {stats.suspendedUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Suspended</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Suspended</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
               <Clock className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
@@ -1285,17 +1467,17 @@ export default function AdminUsersPage() {
               Pending
             </span>
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
             {stats.pendingUsers.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Pending KYC</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Pending KYC</p>
         </div>
       </div>
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Status
@@ -1346,22 +1528,131 @@ export default function AdminUsersPage() {
       )}
 
       {/* Search Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search by name, email, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field pl-12"
+            className="input-field pl-10 sm:pl-12 text-sm sm:text-base"
           />
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Users List - Mobile Card View / Desktop Table View */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {loading ? (
+          <div className="px-4 sm:px-6 py-12 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+              <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
+            </div>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="px-4 sm:px-6 py-12 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <User className="w-12 h-12 text-gray-400" />
+              <p className="text-gray-600 dark:text-gray-400">No users found</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredUsers.map((user) => {
+                const tierBadge = getTierBadge(user.tier)
+                return (
+                  <div
+                    key={user.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* User Photo */}
+                      <div className="flex-shrink-0">
+                        {user.profile_picture_url ? (
+                          <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-red-600/20">
+                            <img
+                              src={user.profile_picture_url}
+                              alt={user.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* User Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-base text-gray-900 dark:text-white mb-1">
+                          {user.name}
+                        </p>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getStatusColor(user.status))}>
+                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          </span>
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', tierBadge.color)}>
+                            {tierBadge.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{user.email}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          {formatCurrency(user.balance)}
+                        </p>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleAction(user.id, 'view')}
+                          className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                          title="View"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleAction(user.id, 'edit')}
+                          className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleAction(user.id, 'fund')}
+                          className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg transition-colors"
+                          title="Fund"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleAction(user.id, 'freeze')}
+                          className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                          title={user.status === 'suspended' ? 'Unfreeze' : 'Freeze'}
+                        >
+                          {user.status === 'suspended' ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                        </button>
+                        {(currentUserRole === 'superadmin' || currentUserRole === 'admin') && user.role !== 'superadmin' && (
+                          <button
+                            onClick={() => handleAction(user.id, 'delete')}
+                            className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
@@ -1392,33 +1683,14 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
-                      <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <User className="w-12 h-12 text-gray-400" />
-                      <p className="text-gray-600 dark:text-gray-400">No users found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => {
-                const tierBadge = getTierBadge(user.tier)
-                
-                return (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
+                  {filteredUsers.map((user) => {
+                    const tierBadge = getTierBadge(user.tier)
+                    
+                    return (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.profile_picture_url ? (
@@ -1563,12 +1835,13 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                   </tr>
-                )
-              })
-              )}
+                    )
+                  })}
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
 
       {/* Legacy Add User Modal - Keeping for reference */}
@@ -1629,12 +1902,22 @@ export default function AdminUsersPage() {
                             const maxSize = 5 * 1024 * 1024 // 5MB
 
                             if (!allowedTypes.includes(file.type)) {
-                              alert('Invalid file type. Please upload an image (JPEG, PNG, WEBP, GIF).')
+                              setNotification({
+                                isOpen: true,
+                                type: 'error',
+                                title: 'Invalid File Type',
+                                message: 'Please upload an image file (JPEG, PNG, WEBP, or GIF).'
+                              })
                               return
                             }
 
                             if (file.size > maxSize) {
-                              alert('File size exceeds 5MB limit.')
+                              setNotification({
+                                isOpen: true,
+                                type: 'error',
+                                title: 'File Too Large',
+                                message: 'File size exceeds 5MB limit. Please choose a smaller image.'
+                              })
                               return
                             }
 
@@ -1679,12 +1962,22 @@ export default function AdminUsersPage() {
                               const maxSize = 5 * 1024 * 1024
 
                               if (!allowedTypes.includes(file.type)) {
-                                alert('Invalid file type. Please upload an image (JPEG, PNG, WEBP, GIF).')
+                                setNotification({
+                                  isOpen: true,
+                                  type: 'error',
+                                  title: 'Invalid File Type',
+                                  message: 'Please upload an image file (JPEG, PNG, WEBP, or GIF).'
+                                })
                                 return
                               }
 
                               if (file.size > maxSize) {
-                                alert('File size exceeds 5MB limit.')
+                                setNotification({
+                                  isOpen: true,
+                                  type: 'error',
+                                  title: 'File Too Large',
+                                  message: 'File size exceeds 5MB limit. Please choose a smaller image.'
+                                })
                                 return
                               }
 
@@ -1895,7 +2188,12 @@ export default function AdminUsersPage() {
                                     if (addUserForm.accountTypes.length < 3) {
                                       setAddUserForm({ ...addUserForm, accountTypes: [...addUserForm.accountTypes, type.id] })
                                     } else {
-                                      alert('You can select a maximum of 3 account types')
+                                      setNotification({
+                                        isOpen: true,
+                                        type: 'warning',
+                                        title: 'Too Many Accounts',
+                                        message: 'You can select a maximum of 3 account types.'
+                                      })
                                     }
                                   }
                                 }}
@@ -2786,6 +3084,15 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+      />
     </div>
   )
 }

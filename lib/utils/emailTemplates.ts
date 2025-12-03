@@ -80,6 +80,42 @@ export interface AccountFundedEmailData {
   adminName?: string
 }
 
+export interface DepositApprovalEmailData {
+  recipientName: string
+  amount: string
+  accountType: string
+  accountNumber: string
+  referenceNumber: string
+  depositId: string
+  date: string
+  adminName?: string
+  adminNotes?: string
+}
+
+export interface DepositRejectionEmailData {
+  recipientName: string
+  amount: string
+  accountType: string
+  accountNumber: string
+  referenceNumber: string
+  depositId: string
+  date: string
+  reason?: string
+  adminNotes?: string
+}
+
+export interface CryptoTransactionEmailData {
+  recipientName: string
+  transactionType: string
+  amount: string
+  btcAmount: string
+  btcPrice: string
+  accountType?: string
+  accountNumber?: string
+  referenceNumber: string
+  date: string
+}
+
 /**
  * Base email template wrapper
  */
@@ -155,49 +191,72 @@ export function getTransferEmailTemplate(data: TransferEmailData): { subject: st
   }
 
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">Transfer Notification</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      This email confirms that a ${transferTypeLabels[data.transferType]} has been processed from your account.
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">Transfer Notification</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      This email confirms that a <strong>${transferTypeLabels[data.transferType]}</strong> has been successfully processed from your account.
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f9f9f9; border-radius: 6px; padding: 20px;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Transfer Type:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${transferTypeLabels[data.transferType]}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Amount:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.amount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">From Account:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.fromAccount}</td>
-      </tr>
-      ${data.toAccount ? `
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">To Account:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.toAccount}</td>
-      </tr>
-      ` : ''}
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Reference Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Date & Time:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.date}</td>
-      </tr>
-      ${data.memo ? `
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Memo:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.memo}</td>
-      </tr>
-      ` : ''}
-    </table>
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Transfer Amount</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      If you did not initiate this transfer, please contact us immediately at support@libertybank.com or call 1-800-LIBERTY.
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Transaction Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Transfer Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${transferTypeLabels[data.transferType]}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">From Account</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.fromAccount}</td>
+        </tr>
+        ${data.toAccount ? `
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">To Account</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.toAccount}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Transaction Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #16a34a; font-weight: 600;">✓ Completed</td>
+        </tr>
+        ${data.memo ? `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600; vertical-align: top;">Memo / Note</td>
+          <td style="padding: 15px 20px; color: #111827; font-weight: 500;">${data.memo}</td>
+        </tr>
+        ` : `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600; vertical-align: top;">Memo / Note</td>
+          <td style="padding: 15px 20px; color: #9ca3af; font-style: italic;">No memo provided</td>
+        </tr>
+        `}
+      </table>
+    </div>
+    
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 15px 20px; margin: 0 0 20px;">
+      <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+        <strong>Security Notice:</strong> If you did not initiate this transfer, please contact us immediately through your online banking portal or visit your nearest branch.
+      </p>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
@@ -212,37 +271,49 @@ export function getTransferEmailTemplate(data: TransferEmailData): { subject: st
  */
 export function getBillPaymentEmailTemplate(data: BillPaymentEmailData): { subject: string; html: string } {
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">Bill Payment Confirmation</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      This email confirms that your bill payment has been successfully processed.
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">Bill Payment Confirmation</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      Your bill payment has been <strong>successfully processed</strong> and will be sent to the payee.
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f9f9f9; border-radius: 6px; padding: 20px;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Bill Name:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.billName}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Amount Paid:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.amount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Account Used:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.accountNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Reference Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Payment Date:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.date}</td>
-      </tr>
-    </table>
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Payment Amount</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      Thank you for using Liberty National Bank for your bill payments.
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Payment Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Bill Payee</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.billName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Used</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Payment Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #16a34a; font-weight: 600;">✓ Processed</td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
@@ -257,33 +328,51 @@ export function getBillPaymentEmailTemplate(data: BillPaymentEmailData): { subje
  */
 export function getLoanApplicationEmailTemplate(data: LoanApplicationEmailData): { subject: string; html: string } {
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">Loan Application Received</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      Thank you for submitting your loan application. We have received your application and our team will review it within 24-48 hours.
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">Loan Application Received</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      Thank you for submitting your loan application. We have <strong>received your application</strong> and our team will review it within <strong>24-48 hours</strong>.
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f9f9f9; border-radius: 6px; padding: 20px;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Loan Type:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.loanType}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Requested Amount:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.requestedAmount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Application Reference:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Application Date:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.date}</td>
-      </tr>
-    </table>
+    <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #3b82f6; margin-bottom: 5px;">${data.requestedAmount}</div>
+        <div style="font-size: 14px; color: #1e40af; font-weight: 600; text-transform: uppercase;">Requested Loan Amount</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      You will receive an email notification once your application has been reviewed. If you have any questions, please contact our loan department.
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Application Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Loan Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.loanType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Application Reference</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Application Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #f59e0b; font-weight: 600;">⏳ Under Review</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; border-radius: 6px; padding: 15px 20px; margin: 0 0 20px;">
+      <p style="margin: 0; color: #0c4a6e; font-size: 14px; line-height: 1.6;">
+        <strong>Next Steps:</strong> You will receive an email notification once your application has been reviewed. Please ensure all required documents are submitted to expedite the process.
+      </p>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
@@ -298,41 +387,59 @@ export function getLoanApplicationEmailTemplate(data: LoanApplicationEmailData):
  */
 export function getLoanApprovalEmailTemplate(data: LoanApprovalEmailData): { subject: string; html: string } {
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">🎉 Loan Application Approved</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      We are pleased to inform you that your loan application has been approved!
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">🎉 Loan Application Approved</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      We are <strong>pleased to inform you</strong> that your loan application has been <strong style="color: #16a34a;">approved</strong>!
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f0fdf4; border-radius: 6px; padding: 20px; border: 2px solid #16a34a;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Loan Type:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.loanType}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Approved Amount:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.approvedAmount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Interest Rate:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.interestRate}% APR</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Monthly Payment:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.monthlyPayment}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Loan Term:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.termMonths} months</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Reference Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-    </table>
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.approvedAmount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Approved Loan Amount</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      Please log in to your account to view the full loan details and next steps. If you have any questions, please contact our loan department.
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Loan Terms & Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Loan Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.loanType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Interest Rate</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.interestRate}% APR</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Monthly Payment</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #16a34a; font-weight: 600; font-size: 18px;">${data.monthlyPayment}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Loan Term</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.termMonths} months (${Math.round(data.termMonths / 12)} years)</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #16a34a; font-weight: 600;">✓ Approved</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 6px; padding: 15px 20px; margin: 0 0 20px;">
+      <p style="margin: 0; color: #047857; font-size: 14px; line-height: 1.6;">
+        <strong>Next Steps:</strong> Please log in to your account to view the full loan details, review the terms, and complete the final steps to activate your loan.
+      </p>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
@@ -347,37 +454,45 @@ export function getLoanApprovalEmailTemplate(data: LoanApprovalEmailData): { sub
  */
 export function getLoanPaymentEmailTemplate(data: LoanPaymentEmailData): { subject: string; html: string } {
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">Loan Payment Received</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      This email confirms that your loan payment has been successfully processed.
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">Loan Payment Received</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      This email confirms that your <strong>loan payment has been successfully processed</strong>.
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f9f9f9; border-radius: 6px; padding: 20px;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Loan Type:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.loanType}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Payment Amount:</td>
-            <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.paymentAmount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Remaining Balance:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.balanceRemaining}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Reference Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Payment Date:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.date}</td>
-      </tr>
-    </table>
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.paymentAmount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Payment Amount</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      Thank you for your payment. Keep up the great work!
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Payment Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Loan Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.loanType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Remaining Balance</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-size: 16px;">${data.balanceRemaining}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Payment Date</td>
+          <td style="padding: 15px 20px; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
@@ -535,54 +650,304 @@ export function getRoleChangeEmailTemplate(data: RoleChangeEmailData): { subject
  * Account funded email template
  */
 export function getAccountFundedEmailTemplate(data: AccountFundedEmailData): { subject: string; html: string } {
+  // Determine title based on funding method
+  const fundingMethodLower = data.fundingMethod?.toLowerCase() || ''
+  let title = 'Account Funded Notification'
+  let description = 'Your account has been <strong>successfully funded</strong>. The funds are now available in your account.'
+  
+  if (fundingMethodLower.includes('ach') || fundingMethodLower.includes('ach transfer')) {
+    title = 'ACH Received'
+    description = 'An <strong>ACH transfer</strong> has been received and credited to your account. The funds are now available.'
+  } else if (fundingMethodLower.includes('direct deposit') || fundingMethodLower.includes('direct-deposit')) {
+    title = 'Direct Deposit Received'
+    description = 'A <strong>direct deposit</strong> has been received and credited to your account. The funds are now available.'
+  } else if (fundingMethodLower.includes('wire') || fundingMethodLower.includes('wire transfer')) {
+    title = 'Wire Transfer Received'
+    description = 'A <strong>wire transfer</strong> has been received and credited to your account. The funds are now available.'
+  } else if (fundingMethodLower.includes('transfer')) {
+    title = 'Transfer Received'
+    description = 'A <strong>transfer</strong> has been received and credited to your account. The funds are now available.'
+  } else if (data.fundingMethod) {
+    title = `${data.fundingMethod} Received`
+    description = `A <strong>${data.fundingMethod}</strong> has been received and credited to your account. The funds are now available.`
+  }
+  
   const content = `
-    <h2 style="margin: 0 0 20px; color: #333333; font-size: 20px;">Account Funded Notification</h2>
-    <p style="margin: 0 0 15px; color: #666666; line-height: 1.6;">Dear ${data.recipientName},</p>
-    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-      Your account has been successfully funded.
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">${title}</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      ${description}
     </p>
     
-    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f0fdf4; border-radius: 6px; padding: 20px; border: 2px solid #16a34a;">
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Amount:</td>
-        <td style="padding: 8px 0; color: #16a34a; font-weight: 600; font-size: 18px; text-align: right;">${data.amount}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Account Type:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.accountType}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Account Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.accountNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Funding Method:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.fundingMethod}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Reference Number:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right; font-family: monospace;">${data.referenceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Date & Time:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.date}</td>
-      </tr>
-      ${data.adminName ? `
-      <tr>
-        <td style="padding: 8px 0; color: #333333; font-weight: 600;">Processed By:</td>
-        <td style="padding: 8px 0; color: #666666; text-align: right;">${data.adminName}</td>
-      </tr>
-      ` : ''}
-    </table>
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Amount Received</div>
+      </div>
+    </div>
     
-    <p style="margin: 20px 0 0; color: #666666; line-height: 1.6; font-size: 14px;">
-      Thank you for banking with Liberty National Bank. The funds are now available in your account.
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Funding Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Account Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.accountType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Funding Method</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.fundingMethod}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Transaction Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        ${data.adminName ? `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Processed By</td>
+          <td style="padding: 15px 20px; color: #111827; font-weight: 500;">${data.adminName}</td>
+        </tr>
+        ` : `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #16a34a; font-weight: 600;">✓ Completed</td>
+        </tr>
+        `}
+      </table>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
     </p>
   `
 
   return {
-    subject: `Account Funded - ${data.amount} - ${data.referenceNumber}`,
-    html: getEmailTemplate('Account Funded Notification', content),
+    subject: `${title} - ${data.amount} - ${data.referenceNumber}`,
+    html: getEmailTemplate(title, content),
+  }
+}
+
+/**
+ * Deposit approval email template
+ */
+export function getDepositApprovalEmailTemplate(data: DepositApprovalEmailData): { subject: string; html: string } {
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">✅ Mobile Deposit Approved</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      Great news! Your mobile deposit has been <strong style="color: #16a34a;">approved</strong> and the funds have been credited to your account.
+    </p>
+    
+    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: #047857; font-weight: 600; text-transform: uppercase;">Deposit Amount</div>
+      </div>
+    </div>
+    
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Deposit Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Account Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.accountType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Deposit ID</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.depositId}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Approved Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        ${data.adminName ? `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Processed By</td>
+          <td style="padding: 15px 20px; color: #111827; font-weight: 500;">${data.adminName}</td>
+        </tr>
+        ` : `
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #16a34a; font-weight: 600;">✓ Approved</td>
+        </tr>
+        `}
+      </table>
+    </div>
+    ${data.adminNotes ? `
+    <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 6px; padding: 15px 20px; margin: 0 0 20px;">
+      <p style="margin: 0 0 8px; color: #047857; font-weight: 600; font-size: 14px;">Admin Notes:</p>
+      <p style="margin: 0; color: #065f46; line-height: 1.6; white-space: pre-wrap; font-size: 14px;">${data.adminNotes}</p>
+    </div>
+    ` : ''}
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
+    </p>
+  `
+
+  return {
+    subject: `Mobile Deposit Approved - ${data.amount} - ${data.referenceNumber}`,
+    html: getEmailTemplate('Mobile Deposit Approved', content),
+  }
+}
+
+/**
+ * Deposit rejection email template
+ */
+export function getDepositRejectionEmailTemplate(data: DepositRejectionEmailData): { subject: string; html: string } {
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">⚠️ Mobile Deposit Rejected</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      We regret to inform you that your mobile deposit has been <strong style="color: #ef4444;">rejected</strong> and the funds were not credited to your account.
+    </p>
+    
+    <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-left: 4px solid #ef4444; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: #ef4444; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: #991b1b; font-weight: 600; text-transform: uppercase;">Rejected Deposit Amount</div>
+      </div>
+    </div>
+    
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Deposit Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Account Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.accountType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.accountNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Deposit ID</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.depositId}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Rejected Date</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Status</td>
+          <td style="padding: 15px 20px; color: #ef4444; font-weight: 600;">✗ Rejected</td>
+        </tr>
+      </table>
+    </div>
+    ${data.reason || data.adminNotes ? `
+    <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; padding: 15px 20px; margin: 0 0 20px;">
+      <p style="margin: 0 0 8px; color: #991b1b; font-weight: 600; font-size: 14px;">Reason for Rejection:</p>
+      <p style="margin: 0; color: #7f1d1d; line-height: 1.6; white-space: pre-wrap; font-size: 14px;">${data.reason || data.adminNotes || 'Please contact customer support for more information.'}</p>
+    </div>
+    ` : ''}
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
+    </p>
+  `
+
+  return {
+    subject: `Mobile Deposit Rejected - ${data.amount} - ${data.referenceNumber}`,
+    html: getEmailTemplate('Mobile Deposit Rejected', content),
+  }
+}
+
+/**
+ * Crypto transaction email template
+ */
+export function getCryptoTransactionEmailTemplate(data: CryptoTransactionEmailData): { subject: string; html: string } {
+  const isBuy = data.transactionType.toLowerCase().includes('buy') || data.transactionType.toLowerCase().includes('purchase')
+  const isSell = data.transactionType.toLowerCase().includes('sell')
+  const statusColor = isBuy ? '#16a34a' : isSell ? '#3b82f6' : '#6b7280'
+  const statusBg = isBuy ? '#f0fdf4' : isSell ? '#eff6ff' : '#f9fafb'
+  
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #333333; font-size: 24px; font-weight: 700;">Crypto Transaction ${isBuy ? 'Completed' : isSell ? 'Completed' : 'Processed'}</h2>
+    <p style="margin: 0 0 20px; color: #666666; line-height: 1.6; font-size: 16px;">Dear ${data.recipientName},</p>
+    <p style="margin: 0 0 30px; color: #666666; line-height: 1.6; font-size: 15px;">
+      Your <strong>${data.transactionType}</strong> has been <strong style="color: ${statusColor};">successfully processed</strong>.
+    </p>
+    
+    <div style="background: linear-gradient(135deg, ${statusBg} 0%, ${isBuy ? '#dcfce7' : isSell ? '#dbeafe' : '#f3f4f6'} 100%); border-left: 4px solid ${statusColor}; border-radius: 8px; padding: 25px; margin: 0 0 30px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 36px; font-weight: 700; color: ${statusColor}; margin-bottom: 5px;">${data.amount}</div>
+        <div style="font-size: 14px; color: ${statusColor}; font-weight: 600; text-transform: uppercase;">Transaction Amount</div>
+      </div>
+    </div>
+    
+    <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; margin: 0 0 30px; overflow: hidden;">
+      <div style="background-color: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+        <h3 style="margin: 0; color: #333333; font-size: 16px; font-weight: 600;">Transaction Details</h3>
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600; width: 40%;">Transaction Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.transactionType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">BTC Amount</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace;">${data.btcAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">BTC Price</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.btcPrice}</td>
+        </tr>
+        ${data.accountType ? `
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Type</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500;">${data.accountType}</td>
+        </tr>
+        ` : ''}
+        ${data.accountNumber ? `
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Account Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 500; font-family: monospace;">${data.accountNumber}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 600;">Reference Number</td>
+          <td style="padding: 15px 20px; border-bottom: 1px solid #f3f4f6; color: #111827; font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">${data.referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 15px 20px; color: #374151; font-weight: 600;">Transaction Date</td>
+          <td style="padding: 15px 20px; color: #111827; font-weight: 500;">${data.date}</td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="margin: 20px 0 0; color: #6b7280; line-height: 1.6; font-size: 14px; text-align: center;">
+      This is an automated notification. Please do not reply to this email.
+    </p>
+  `
+
+  return {
+    subject: `${data.transactionType} - ${data.amount} - ${data.referenceNumber}`,
+    html: getEmailTemplate('Crypto Transaction', content),
   }
 }
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminTopBar } from './AdminTopBar'
+import AdminChatWidget from '@/components/chat/AdminChatWidget'
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
@@ -26,6 +27,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+      <AdminChatWidget />
     </div>
   )
 }

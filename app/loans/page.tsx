@@ -59,7 +59,7 @@ import {
 } from 'recharts'
 
 export default function LoansPage() {
-  const { accounts, loading: accountsLoading } = useAccounts()
+  const { accounts } = useAccounts() // No loading state - accounts appear immediately
   const [showApplication, setShowApplication] = useState(false)
   const [applicationStep, setApplicationStep] = useState(1)
   const [selectedLoanType, setSelectedLoanType] = useState<string | null>(null)
@@ -2462,11 +2462,8 @@ export default function LoansPage() {
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
                   className="input-field"
-                  disabled={accountsLoading}
                 >
-                  {accountsLoading ? (
-                    <option>Loading accounts...</option>
-                  ) : accounts.length === 0 ? (
+                  {accounts.length === 0 ? (
                     <option>No accounts available</option>
                   ) : (
                     accounts.map((account) => (
@@ -2851,7 +2848,7 @@ export default function LoansPage() {
                 </button>
                 <button
                   onClick={handleSubmitApplication}
-                  disabled={isSubmitting || !termsAccepted || !creditCheckAccepted || !repaymentPolicyAccepted || !digitalSignature || !otpVerified || !selectedAccountId || accountsLoading}
+                  disabled={isSubmitting || !termsAccepted || !creditCheckAccepted || !repaymentPolicyAccepted || !digitalSignature || !otpVerified || !selectedAccountId}
                   className="flex-1 px-6 py-3 bg-green-700 hover:bg-green-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
@@ -2952,11 +2949,8 @@ export default function LoansPage() {
                   value={paymentAccountId}
                   onChange={(e) => setPaymentAccountId(e.target.value)}
                   className="input-field"
-                  disabled={accountsLoading}
                 >
-                  {accountsLoading ? (
-                    <option>Loading accounts...</option>
-                  ) : accounts.length === 0 ? (
+                  {accounts.length === 0 ? (
                     <option>No accounts available</option>
                   ) : (
                     accounts.map((account) => (

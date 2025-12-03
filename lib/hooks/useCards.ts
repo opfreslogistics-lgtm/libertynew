@@ -102,12 +102,11 @@ export function useCards() {
           .single()
 
         for (const account of userAccounts) {
-          // Check if card already exists for this account type
+          // Check if card already exists for this specific account (one card per account)
           const { data: existingCard } = await supabase
             .from('cards')
             .select('id')
-            .eq('user_id', user.id)
-            .eq('account_type', account.account_type)
+            .eq('account_id', account.id)
             .neq('status', 'cancelled')
             .limit(1)
             .single()

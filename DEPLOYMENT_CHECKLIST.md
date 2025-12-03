@@ -20,8 +20,13 @@ Required environment variables to set in Vercel:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-RESEND_API_KEY=your_resend_api_key
-FROM_EMAIL="Liberty Bank <noreply@libertybank.com>"
+# Email configuration (using Nodemailer)
+EMAIL_SERVICE=gmail
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+EMAIL_FROM=Liberty Bank <noreply@libertybank.com>
+EMAIL_REPLY_TO=support@libertybank.com
+FROM_EMAIL="Liberty Bank <noreply@libert>"
 REPLY_TO_EMAIL=support@libertybank.com
 NODE_ENV=production
 ```

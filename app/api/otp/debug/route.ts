@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       verifiedSessions: verifiedSessions || [],
       sessionError: sessionError?.message,
       environment: {
-        hasResendKey: !!process.env.RESEND_API_KEY,
+        hasEmailConfig: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
         hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       },

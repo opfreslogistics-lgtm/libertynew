@@ -129,7 +129,8 @@ export default function ContactPage() {
       }, 3000)
     } catch (error) {
       console.error('Error submitting form:', error)
-      alert('Failed to submit form. Please try again or contact us directly.')
+      // Error handling - could add toast notification here
+      console.error('Form submission error:', error)
     } finally {
       setSubmitting(false)
     }

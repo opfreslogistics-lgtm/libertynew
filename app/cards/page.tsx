@@ -461,6 +461,7 @@ function UnifiedSpendingChart({ cards }: { cards: any[] }) {
           return
         }
 
+        // Fetch all transactions for user's cards (includes admin transactions)
         const { data, error } = await supabase
           .from('card_transactions')
           .select('*')
@@ -469,6 +470,7 @@ function UnifiedSpendingChart({ cards }: { cards: any[] }) {
           .limit(1000)
 
         if (error) throw error
+        // This includes all transactions: user transactions and admin-initiated transactions
         setAllTransactions(data || [])
       } catch (error) {
         console.error('Error fetching transactions:', error)

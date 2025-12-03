@@ -14,7 +14,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick, isAdmin = false }: TopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
-  const { profile, loading, initials, fullName } = useUserProfile()
+  const { profile, initials, fullName } = useUserProfile() // No loading state - use static data
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -83,16 +83,16 @@ export function TopBar({ onMenuClick, isAdmin = false }: TopBarProps) {
                 </div>
               ) : (
                 <div className="w-9 h-9 bg-gradient-to-br from-green-700 to-green-800 rounded-full flex items-center justify-center ring-2 ring-green-100 dark:ring-green-900/30">
-                  <span className="text-sm font-bold text-white">{loading ? '...' : initials}</span>
+                  <span className="text-sm font-bold text-white">{initials}</span>
                 </div>
               )}
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {loading ? 'Loading...' : fullName}
+                  {fullName}
                 </p>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-green-700 dark:text-green-400 font-semibold">
-                    {loading ? '...' : (profile?.role === 'superadmin' || profile?.role === 'admin' ? 'Admin' : 'Member')}
+                    {profile?.role === 'superadmin' || profile?.role === 'admin' ? 'Admin' : 'Member'}
                   </span>
                   <div className="w-1 h-1 bg-green-500 rounded-full"></div>
                 </div>
@@ -122,7 +122,7 @@ export function TopBar({ onMenuClick, isAdmin = false }: TopBarProps) {
                         {fullName}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {loading ? 'Loading...' : (profile?.email || 'No email')}
+                        {profile?.email || 'No email'}
                       </p>
                     </div>
                   </div>

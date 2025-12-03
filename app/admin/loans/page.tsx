@@ -1364,9 +1364,105 @@ export default function AdminLoansPage() {
       </div>
 
       {/* Loans Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : filteredLoans.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">No loans found</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredLoans.map((loan) => {
+                const Icon = getLoanTypeIcon(loan.loan_type)
+                const initials = (loan.user_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                return (
+                  <div
+                    key={loan.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Loan Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {initials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-base text-gray-900 dark:text-white truncate">
+                              {loan.user_name || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {loan.reference_number}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 rounded flex items-center justify-center">
+                              <Icon className="w-3 h-3 text-red-700 dark:text-red-400" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                              {getLoanTypeName(loan.loan_type)}
+                            </span>
+                          </div>
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getStatusColor(loan.status))}>
+                            {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                          {formatCurrency(loan.requested_amount)}
+                        </p>
+                        {loan.amount && loan.amount !== loan.requested_amount && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Approved: {formatCurrency(loan.amount)}
+                          </p>
+                        )}
+                        {loan.balance_remaining > 0 && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Balance: {formatCurrency(loan.balance_remaining)}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {loan.interest_rate}% APR • {loan.term_months} months
+                        </p>
+                      </div>
+                      
+                      {/* Action Button */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleViewLoan(loan.id)}
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center gap-1 text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Review
+                        </button>
+                        {(loan.status === 'completed' || loan.status === 'declined' || (loan.status === 'active' && parseFloat((loan.balance_remaining || 0).toString()) <= 0)) && (
+                          <button
+                            onClick={() => {
+                              setLoanToDelete(loan.id)
+                              setShowDeleteModal(true)
+                            }}
+                            className="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -1396,16 +1492,9 @@ export default function AdminLoansPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredLoans.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <p className="text-gray-500 dark:text-gray-400">No loans found</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredLoans.map((loan) => {
-                  const Icon = getLoanTypeIcon(loan.loan_type)
-                  const initials = (loan.user_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+              {filteredLoans.map((loan) => {
+                const Icon = getLoanTypeIcon(loan.loan_type)
+                const initials = (loan.user_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                 return (
                   <tr
                     key={loan.id}
@@ -1508,11 +1597,12 @@ export default function AdminLoansPage() {
                     </td>
                   </tr>
                 )
-                })
-              )}
+              })}
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Loan Review Modal */}

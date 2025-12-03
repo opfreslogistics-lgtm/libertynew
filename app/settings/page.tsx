@@ -55,6 +55,12 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [notification, setNotification] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  })
 
   // Form state for profile information
   const [formData, setFormData] = useState({
@@ -353,12 +359,22 @@ export default function SettingsPage() {
                         const maxSize = 5 * 1024 * 1024 // 5MB
 
                         if (!allowedTypes.includes(file.type)) {
-                          alert('Invalid file type. Please upload an image (JPEG, PNG, WEBP, GIF).')
+                          setNotification({
+                            isOpen: true,
+                            type: 'error',
+                            title: 'Invalid File Type',
+                            message: 'Please upload an image file (JPEG, PNG, WEBP, or GIF).'
+                          })
                           return
                         }
 
                         if (file.size > maxSize) {
-                          alert('File size exceeds 5MB limit.')
+                          setNotification({
+                            isOpen: true,
+                            type: 'error',
+                            title: 'File Too Large',
+                            message: 'File size exceeds 5MB limit. Please choose a smaller image.'
+                          })
                           return
                         }
 
@@ -417,10 +433,20 @@ export default function SettingsPage() {
 
                           // Refresh profile
                           await refresh()
-                          alert('Profile picture updated successfully!')
+                          setNotification({
+                            isOpen: true,
+                            type: 'success',
+                            title: 'Profile Picture Updated',
+                            message: 'Your profile picture has been updated successfully!'
+                          })
                         } catch (error: any) {
                           console.error('Error uploading profile picture:', error)
-                          alert(error.message || 'Failed to upload profile picture')
+                          setNotification({
+                            isOpen: true,
+                            type: 'error',
+                            title: 'Upload Failed',
+                            message: error.message || 'Failed to upload profile picture. Please try again.'
+                          })
                           setProfilePicPreview(null)
                         } finally {
                           setUploadingProfilePic(false)
@@ -769,7 +795,12 @@ export default function SettingsPage() {
                           } catch (error: any) {
                             console.error('Error updating 2FA:', error)
                             setTwoFactor(!newValue) // Revert on error
-                            alert('Failed to update two-factor authentication. Please try again.')
+                            setNotification({
+                              isOpen: true,
+                              type: 'error',
+                              title: 'Update Failed',
+                              message: 'Failed to update two-factor authentication. Please try again.'
+                            })
                           } finally {
                             setSavingSecurity(false)
                           }
@@ -812,7 +843,12 @@ export default function SettingsPage() {
                           } catch (error: any) {
                             console.error('Error updating biometric:', error)
                             setBiometric(!newValue) // Revert on error
-                            alert('Failed to update biometric login. Please try again.')
+                            setNotification({
+                              isOpen: true,
+                              type: 'error',
+                              title: 'Update Failed',
+                              message: 'Failed to update biometric login. Please try again.'
+                            })
                           } finally {
                             setSavingSecurity(false)
                           }
@@ -902,7 +938,12 @@ export default function SettingsPage() {
                                     }
                                   } catch (error) {
                                     console.error('Error deleting device:', error)
-                                    alert('Failed to remove device. Please try again.')
+                                    setNotification({
+                                      isOpen: true,
+                                      type: 'error',
+                                      title: 'Remove Failed',
+                                      message: 'Failed to remove device. Please try again.'
+                                    })
                                   }
                                 }}
                                 className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors group"
@@ -943,11 +984,21 @@ export default function SettingsPage() {
                           const result = await fetchResponse.json()
                           setDevices(result.devices || [])
                         }
-                        alert('All other devices have been signed out.')
+                        setNotification({
+                          isOpen: true,
+                          type: 'success',
+                          title: 'Devices Signed Out',
+                          message: 'All other devices have been signed out successfully.'
+                        })
                       }
                     } catch (error) {
                       console.error('Error signing out devices:', error)
-                      alert('Failed to sign out devices. Please try again.')
+                      setNotification({
+                        isOpen: true,
+                        type: 'error',
+                        title: 'Sign Out Failed',
+                        message: 'Failed to sign out devices. Please try again.'
+                      })
                     }
                   }}
                   disabled={devices.filter(d => !d.current).length === 0}
@@ -1603,7 +1654,12 @@ export default function SettingsPage() {
               <button
                 onClick={async () => {
                   if (deleteAccountConfirm !== 'DELETE') {
-                    alert('Please type DELETE to confirm account deletion')
+                    setNotification({
+                      isOpen: true,
+                      type: 'warning',
+                      title: 'Confirmation Required',
+                      message: 'Please type DELETE to confirm account deletion.'
+                    })
                     return
                   }
 
@@ -1627,11 +1683,23 @@ export default function SettingsPage() {
                     await supabase.auth.signOut()
 
                     // Redirect to login with message
-                    alert('Your account has been deleted. You will be redirected to the login page.')
-                    window.location.href = '/login'
+                    setNotification({
+                      isOpen: true,
+                      type: 'success',
+                      title: 'Account Deleted',
+                      message: 'Your account has been deleted. You will be redirected to the login page.'
+                    })
+                    setTimeout(() => {
+                      window.location.href = '/login'
+                    }, 2000)
                   } catch (error: any) {
                     console.error('Error deleting account:', error)
-                    alert(`Failed to delete account: ${error.message || 'Please try again.'}`)
+                    setNotification({
+                      isOpen: true,
+                      type: 'error',
+                      title: 'Deletion Failed',
+                      message: `Failed to delete account: ${error.message || 'Please try again.'}`
+                    })
                     setDeletingAccount(false)
                   }
                 }}
@@ -1664,7 +1732,7 @@ function KYCTabContent({ profile }: { profile: any }) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({})
-  const [notification, setNotification] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string }>({
+  const [notification, setNotification] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string }>({
     isOpen: false,
     type: 'success',
     title: '',

@@ -750,9 +750,89 @@ export default function AdminSupportPage() {
       </div>
 
       {/* Tickets Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : filteredTickets.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-50" />
+            <p className="text-gray-500 dark:text-gray-400">No tickets found</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredTickets.map((ticket) => {
+                const Icon = getTypeIcon(ticket.category)
+                return (
+                  <div
+                    key={ticket.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Ticket Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {ticket.user_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-base text-gray-900 dark:text-white truncate">
+                              {ticket.ticket_number}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {ticket.user_name}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white mb-1 truncate">
+                          {ticket.subject}
+                        </p>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <Icon className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {getTypeName(ticket.category)}
+                            </span>
+                          </div>
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getPriorityColor(ticket.priority))}>
+                            {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
+                          </span>
+                          <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getStatusColor(ticket.status))}>
+                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
+                          </span>
+                        </div>
+                        {ticket.assigned_to_name && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Assigned: {ticket.assigned_to_name}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(ticket.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      
+                      {/* Action Button */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleViewTicket(ticket.id)}
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center gap-1 text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -779,32 +859,13 @@ export default function AdminSupportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-8 h-8 border-4 border-green-700 border-t-transparent rounded-full animate-spin mb-3"></div>
-                      <p className="text-gray-600 dark:text-gray-400">Loading tickets...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredTickets.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <MessageSquare className="w-12 h-12 text-gray-400 mb-3 opacity-50" />
-                      <p className="text-gray-600 dark:text-gray-400">No tickets found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const Icon = getTypeIcon(ticket.category)
-                  return (
-                    <tr
-                      key={ticket.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                    >
+              {filteredTickets.map((ticket) => {
+                const Icon = getTypeIcon(ticket.category)
+                return (
+                  <tr
+                    key={ticket.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -862,12 +923,13 @@ export default function AdminSupportPage() {
                         </div>
                       </td>
                     </tr>
-                  )
-                })
-              )}
+                )
+              })}
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Ticket Details Modal */}

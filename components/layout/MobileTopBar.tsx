@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useAppSettings } from '@/lib/hooks/useAppSettings'
 import { useTheme } from '@/components/ThemeProvider'
+import { useUserProfile } from '@/lib/hooks/useUserProfile'
 
 interface MobileTopBarProps {
   onMenuClick: () => void
@@ -16,6 +17,7 @@ export function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
   const [showProfile, setShowProfile] = useState(false)
   const { settings } = useAppSettings()
   const { theme } = useTheme()
+  const { profile, initials, fullName } = useUserProfile() // No loading state - use static data
   
   const appName = settings.app_name || 'Liberty National Bank'
   // Get logo URL - prioritize uploaded logos with proper fallback
@@ -82,9 +84,19 @@ export function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
               onClick={() => setShowProfile(!showProfile)}
               className="relative"
             >
-              <div className="w-9 h-9 bg-gradient-to-br from-green-700 to-green-800 rounded-full flex items-center justify-center ring-2 ring-green-100 dark:ring-green-900/30 active:scale-95 transition-transform">
-                <span className="text-sm font-bold text-white">JD</span>
-              </div>
+              {profile?.profile_picture_url ? (
+                <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-green-100 dark:ring-green-900/30 active:scale-95 transition-transform">
+                  <img
+                    src={profile.profile_picture_url}
+                    alt={fullName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-9 h-9 bg-gradient-to-br from-green-700 to-green-800 rounded-full flex items-center justify-center ring-2 ring-green-100 dark:ring-green-900/30 active:scale-95 transition-transform">
+                  <span className="text-sm font-bold text-white">{initials}</span>
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -109,17 +121,29 @@ export function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
           <div className="absolute top-full right-4 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-700 to-green-800 rounded-full flex items-center justify-center ring-2 ring-green-200 dark:ring-green-800">
-                  <span className="text-xl font-bold text-white">JD</span>
-                </div>
+                {profile?.profile_picture_url ? (
+                  <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-green-200 dark:ring-green-800">
+                    <img
+                      src={profile.profile_picture_url}
+                      alt={fullName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-700 to-green-800 rounded-full flex items-center justify-center ring-2 ring-green-200 dark:ring-green-800">
+                    <span className="text-xl font-bold text-white">{initials}</span>
+                  </div>
+                )}
                 <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">John Doe</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">john.doe@liberty.com</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{fullName}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{profile?.email || 'No email'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg">
                 <Sparkles className="w-4 h-4 text-green-700 dark:text-green-400" />
-                <span className="text-sm font-semibold text-green-700 dark:text-green-400">Premium Member</span>
+                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  {profile?.role === 'superadmin' || profile?.role === 'admin' ? 'Admin' : 'Member'}
+                </span>
               </div>
             </div>
             <div className="p-2">
@@ -139,7 +163,14 @@ export function MobileTopBar({ onMenuClick }: MobileTopBarProps) {
                 </button>
               </Link>
               <hr className="my-2 border-gray-200 dark:border-gray-700" />
-              <button className="w-full text-left px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-semibold">
+              <button
+                onClick={async () => {
+                  const { supabase } = await import('@/lib/supabase')
+                  await supabase.auth.signOut()
+                  window.location.href = '/'
+                }}
+                className="w-full text-left px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-semibold"
+              >
                 Sign Out
               </button>
             </div>

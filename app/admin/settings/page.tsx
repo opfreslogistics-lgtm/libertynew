@@ -511,7 +511,8 @@ export default function AdminSettingsPage() {
   }
 
   const handleAddAdmin = () => {
-    alert('Admin account creation form would open here')
+    // This would open a form modal - placeholder for now
+    console.log('Admin account creation form would open here')
     setShowAddAdminModal(false)
   }
 
@@ -522,7 +523,8 @@ export default function AdminSettingsPage() {
 
   const handleDeleteAdmin = (adminId: string) => {
     if (confirm('Are you sure you want to delete this admin account?')) {
-      alert(`Admin ${adminId} deleted`)
+      // Admin deletion handled - could add notification here
+      console.log(`Admin ${adminId} deleted`)
     }
   }
 

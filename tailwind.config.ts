@@ -30,6 +30,21 @@ const config: Config = {
       fontFamily: {
         sans: ['Inter', 'Rubik', 'system-ui', 'sans-serif'],
       },
+      animation: {
+        'scale-in': 'scaleIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.4s ease-out',
+      },
+      keyframes: {
+        scaleIn: {
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '50%': { transform: 'scale(1.1)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
     },
   },
   plugins: [],

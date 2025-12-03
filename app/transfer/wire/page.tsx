@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useStore } from '@/lib/store'
 import { useAccounts } from '@/lib/hooks/useAccounts'
 import { formatCurrency, maskAccountNumber, generateReferenceNumber } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { getWireTransactionPin, getWireBeneficiaries, searchBeneficiaries, saveWireBeneficiary, WireBeneficiary } from '@/lib/utils/wireTransfer'
 import NotificationModal from '@/components/NotificationModal'
-import TransferSuccessModal from '@/components/TransferSuccessModal'
+import TransferProgressModal from '@/components/TransferProgressModal'
 import { sendTransferNotification } from '@/lib/utils/emailNotifications'
 import {
   ArrowRight,
@@ -38,9 +37,7 @@ type TransferType = 'domestic' | 'international'
 type WireStep = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 export default function WireTransferPage() {
-  const { accounts: storeAccounts } = useStore()
-  const { accounts: dbAccounts, loading: accountsLoading, refreshAccounts } = useAccounts()
-  const accounts = dbAccounts.length > 0 ? dbAccounts : storeAccounts
+  const { accounts, refreshAccounts } = useAccounts() // Only use real accounts from database
   const [currentStep, setCurrentStep] = useState<WireStep>(1)
   const [transferType, setTransferType] = useState<TransferType>('domestic')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -377,12 +374,13 @@ export default function WireTransferPage() {
           read: false,
         }])
 
-      // Send email notifications (non-blocking)
+      // Send email notifications (non-blocking but properly awaited)
       const accountDisplayName = fromAccountData.account_type ? 
         (fromAccountData.account_type === 'fixed-deposit' ? 'Fixed Deposit' : fromAccountData.account_type.charAt(0).toUpperCase() + fromAccountData.account_type.slice(1)) + ' Account' :
         fromAccountData.name || 'Account'
       
-      sendTransferNotification(
+      try {
+        await sendTransferNotification(
         user.id,
         'wire',
         transferAmount,
@@ -390,10 +388,11 @@ export default function WireTransferPage() {
         `${beneficiaryName} - ${bankName}`,
         referenceNumber,
         purpose || undefined
-      ).catch(error => {
+        )
+      } catch (error) {
         console.error('Error sending wire transfer email notification:', error)
         // Don't fail the transfer if email fails
-      })
+      }
 
       // Prepare success details
       const successDetails = {
@@ -420,13 +419,18 @@ export default function WireTransferPage() {
       }
 
       setTransferSuccessDetails(successDetails)
-      setIsProcessing(false)
       setCurrentStep(7)
-      // Don't auto-show success modal, let user see step 7 first
+      
       await refreshAccounts()
+      
+      // After success details are set, stop processing to trigger success state
+      // The modal will handle the smooth transition
+      await new Promise(resolve => setTimeout(resolve, 800))
+      setIsProcessing(false)
     } catch (error: any) {
       console.error('Error executing wire transfer:', error)
       setIsProcessing(false)
+      setTransferSuccessDetails(null)
       setNotification({
         isOpen: true,
         type: 'error',
@@ -1449,31 +1453,26 @@ export default function WireTransferPage() {
         message={notification.message}
       />
 
-      {/* Wire Transfer Success Modal */}
-      {transferSuccessDetails && (
-        <TransferSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
+      {/* Transfer Progress Modal - Handles both processing and success states */}
+      <TransferProgressModal
+        isProcessing={isProcessing}
+        isComplete={!!transferSuccessDetails && !isProcessing}
           transferType="wire"
-          transferDetails={{
+        transferDetails={transferSuccessDetails ? {
             amount: transferSuccessDetails.amount,
             fees: transferSuccessDetails.fees,
             totalAmount: transferSuccessDetails.totalAmount,
             fromAccount: transferSuccessDetails.fromAccount,
-            beneficiaryName: transferSuccessDetails.beneficiaryName,
-            bankName: transferSuccessDetails.bankName,
-            accountNumber: transferSuccessDetails.accountNumber,
-            swiftCode: transferSuccessDetails.swiftCode,
-            routingNumber: transferSuccessDetails.routingNumber,
+          toAccount: undefined,
             referenceNumber: transferSuccessDetails.referenceNumber,
             date: transferSuccessDetails.date,
-            memo: transferSuccessDetails.purpose,
-            purpose: transferSuccessDetails.purpose,
-            currency: transferSuccessDetails.currency,
-            transferType: transferSuccessDetails.transferType,
-          }}
-        />
-      )}
+        } : undefined}
+        onClose={() => {
+          setIsProcessing(false)
+          setShowSuccessModal(false)
+          setTransferSuccessDetails(null)
+        }}
+      />
     </div>
   )
 }

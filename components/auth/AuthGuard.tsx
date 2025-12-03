@@ -119,15 +119,10 @@ export function AuthGuard({
     }
   }
 
+  // Loading is now handled by PageLoader component
+  // Just return null while loading to prevent flash
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-green-700 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   if (requireAuth && !authenticated) {

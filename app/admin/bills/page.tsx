@@ -532,9 +532,90 @@ export default function AdminBillsPage() {
       </div>
 
       {/* Bills Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : filteredBills.length === 0 ? (
+          <div className="text-center py-12">
+            <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-50" />
+            <p className="text-gray-500 dark:text-gray-400">No bills found</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredBills.map((bill) => (
+                <div
+                  key={bill.id}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Bill Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {bill.bill_logo_url ? (
+                          <img
+                            src={bill.bill_logo_url}
+                            alt={bill.bill_name}
+                            className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Receipt className="w-4 h-4 text-red-700 dark:text-red-400" />
+                          </div>
+                        )}
+                        <p className="font-semibold text-base text-gray-900 dark:text-white truncate">
+                          {bill.bill_name}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">
+                        {bill.user_name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        ID: {bill.id.substring(0, 8)}...
+                      </p>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={clsx('px-2 py-0.5 rounded-full text-xs font-semibold', getStatusColor(bill.status))}>
+                          {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                        ${bill.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Due: {new Date(bill.due_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      {bill.status === 'pending' && (
+                        <button
+                          onClick={() => handleSendReminder(bill.id)}
+                          className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                          title="Send Reminder"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleViewBill(bill.id)}
+                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center gap-1 text-sm"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -561,26 +642,7 @@ export default function AdminBillsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                      <p className="text-gray-600 dark:text-gray-400">Loading bills...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredBills.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Receipt className="w-12 h-12 text-gray-400 mb-3 opacity-50" />
-                      <p className="text-gray-600 dark:text-gray-400">No bills found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredBills.map((bill) => {
+              {filteredBills.map((bill) => {
                 return (
                   <tr
                     key={bill.id}
@@ -648,11 +710,12 @@ export default function AdminBillsPage() {
                     </td>
                   </tr>
                 )
-                })
-              )}
+              })}
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Create Bill Modal */}

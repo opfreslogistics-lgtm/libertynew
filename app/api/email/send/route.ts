@@ -19,6 +19,9 @@ import {
   getContactConfirmationEmailTemplate,
   getSupportTicketEmailTemplate,
   getSupportTicketConfirmationEmailTemplate,
+  getDepositApprovalEmailTemplate,
+  getDepositRejectionEmailTemplate,
+  getCryptoTransactionEmailTemplate,
 } from '@/lib/utils/emailTemplates'
 import { getAppSetting } from '@/lib/utils/appSettings'
 
@@ -84,8 +87,22 @@ const createTransporter = () => {
 // Email configuration
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'Liberty National Bank <noreply@libertybank.com>'
 
+// Handle CORS preflight requests (same as OTP route)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
+    console.log('📧 Email API route called')
+    
     const body = await request.json()
     const {
       notificationType,
@@ -95,7 +112,16 @@ export async function POST(request: NextRequest) {
       metadata,
     } = body
 
+    console.log('📧 Email API request data:', {
+      notificationType,
+      recipientEmail,
+      recipientName,
+      subject: subject?.substring(0, 50),
+      hasMetadata: !!metadata,
+    })
+
     if (!recipientEmail || !subject) {
+      console.error('❌ Missing required fields:', { recipientEmail: !!recipientEmail, subject: !!subject })
       return NextResponse.json(
         { error: 'Missing required fields: recipientEmail, subject' },
         { status: 400 }
@@ -325,6 +351,42 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'deposit_approved': {
+        const depositApprovalData = {
+          recipientName: recipientName || 'Valued Customer',
+          amount: metadata?.amount || '$0.00',
+          accountType: metadata?.accountType || 'Account',
+          accountNumber: metadata?.accountNumber || 'N/A',
+          referenceNumber: metadata?.referenceNumber || 'N/A',
+          depositId: metadata?.depositId || 'N/A',
+          date: metadata?.date || new Date().toLocaleString(),
+          adminName: metadata?.adminName,
+          adminNotes: metadata?.adminNotes,
+        }
+        const template = getDepositApprovalEmailTemplate(depositApprovalData)
+        emailHtml = template.html
+        emailSubject = template.subject
+        break
+      }
+
+      case 'deposit_rejected': {
+        const depositRejectionData = {
+          recipientName: recipientName || 'Valued Customer',
+          amount: metadata?.amount || '$0.00',
+          accountType: metadata?.accountType || 'Account',
+          accountNumber: metadata?.accountNumber || 'N/A',
+          referenceNumber: metadata?.referenceNumber || 'N/A',
+          depositId: metadata?.depositId || 'N/A',
+          date: metadata?.date || new Date().toLocaleString(),
+          reason: metadata?.reason,
+          adminNotes: metadata?.adminNotes,
+        }
+        const template = getDepositRejectionEmailTemplate(depositRejectionData)
+        emailHtml = template.html
+        emailSubject = template.subject
+        break
+      }
+
       case 'card_transaction':
       case 'deposit_submitted': {
         // Generic transaction notification template
@@ -348,6 +410,24 @@ export async function POST(request: NextRequest) {
           </body>
           </html>
         `
+        break
+      }
+
+      case 'crypto_transaction': {
+        const cryptoData = {
+          recipientName: recipientName || 'Valued Customer',
+          transactionType: metadata?.transactionType || 'Crypto Transaction',
+          amount: metadata?.amount || '$0.00',
+          btcAmount: metadata?.btcAmount || '0.00000000 BTC',
+          btcPrice: metadata?.btcPrice || '$0.00',
+          referenceNumber: metadata?.referenceNumber || 'N/A',
+          accountType: metadata?.accountType,
+          accountNumber: metadata?.accountNumber,
+          date: metadata?.date || new Date().toLocaleString(),
+        }
+        const template = getCryptoTransactionEmailTemplate(cryptoData)
+        emailHtml = template.html
+        emailSubject = template.subject
         break
       }
 
@@ -401,7 +481,7 @@ export async function POST(request: NextRequest) {
       finalRecipientEmail = await getAppSetting('support_email') || await getAppSetting('contact_email') || recipientEmail
     }
     
-    // Send email using Nodemailer
+    // Send email using Nodemailer (same as OTP implementation)
     const mailOptions = {
       from: fromEmail,
       to: finalRecipientEmail,
@@ -410,25 +490,66 @@ export async function POST(request: NextRequest) {
       html: emailHtml,
     }
 
+    console.log('📧 Attempting to send email:', {
+      to: finalRecipientEmail,
+      subject: emailSubject,
+      notificationType,
+      from: fromEmail,
+    })
+
+    console.log('📧 Sending email via Nodemailer:', {
+      from: fromEmail,
+      to: finalRecipientEmail,
+      subject: emailSubject,
+      notificationType,
+    })
+
     const info = await transporter.sendMail(mailOptions)
 
-    console.log('✅ Email sent successfully:', {
-      to: recipientEmail,
+    console.log('✅ Email sent successfully via Nodemailer:', {
+      to: finalRecipientEmail,
       subject: emailSubject,
       notificationType,
       messageId: info.messageId,
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Email sent successfully',
-      messageId: info.messageId 
-    })
-  } catch (error: any) {
-    console.error('Error in email API route:', error)
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { 
+        success: true, 
+        message: 'Email sent successfully',
+        messageId: info.messageId 
+      },
+      {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      }
+    )
+  } catch (error: any) {
+    console.error('❌ Error in email API route:', error)
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    })
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Internal server error', 
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      {
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      }
     )
   }
 }

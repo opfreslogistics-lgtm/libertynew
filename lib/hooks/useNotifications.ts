@@ -18,7 +18,48 @@ export function useNotifications() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchNotifications()
+    let channel: any = null
+
+    const setupSubscription = async () => {
+      await fetchNotifications()
+
+      // Set up real-time subscription for notifications
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (user && !userError) {
+        channel = supabase
+          .channel(`notifications_changes_${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload) => {
+              console.log('Notification change detected:', payload)
+              // Refresh notifications when any change occurs
+              // Use a small delay to ensure database has updated
+              setTimeout(() => {
+                fetchNotifications()
+              }, 100)
+            }
+          )
+          .subscribe()
+
+        console.log('Real-time subscription set up for notifications')
+      }
+    }
+
+    setupSubscription()
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+        console.log('Real-time subscription removed for notifications')
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchNotifications = async () => {
